@@ -17,6 +17,11 @@ class Patient(Base):
     gender = Column(String(10))
     phone = Column(String(20))
     email = Column(String(255))
+    
+    # Extra columns from your database
+    address = Column(String(255), nullable=True)  # Added
+    blood_group = Column(String(10), nullable=True)  # Added
+    
     allergies = Column(ARRAY(String), default=[])
     conditions = Column(ARRAY(String), default=[])
     medications = Column(ARRAY(String), default=[])
