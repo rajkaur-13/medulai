@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, String, JSON
+from sqlalchemy import Column, String, Text, Boolean, Date, Integer, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
@@ -11,13 +11,21 @@ class SOAPNote(Base):
     patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False)
     doctor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
-    # JSONB field for structured SOAP data
-    content = Column(JSON, nullable=False, default=dict)
+    # SOAP Sections - Individual columns for better querying and display
+    subjective = Column(Text, nullable=True)      # Patient's complaints, symptoms, history
+    objective = Column(Text, nullable=True)       # Exam findings, vitals, test results
+    assessment = Column(Text, nullable=True)      # Diagnosis, differential, clinical impression
+    plan = Column(Text, nullable=True)            # Treatment plan, medications, follow-up
+    
+    # Summary/Conclusion
+    summary = Column(Text, nullable=True)         # Overall conclusion, key takeaways
     
     # Metadata
-    visit_date = Column(DateTime(timezone=True), server_default=func.now())
+    visit_date = Column(Date, nullable=False, server_default=func.current_date())
+    is_finalized = Column(Boolean, default=False)  # Changed from String to Boolean
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Status
-    is_finalized = Column(String, default="draft")
+    # Tracking
+    version = Column(Integer, default=1)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
