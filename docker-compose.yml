@@ -1,21 +1,4 @@
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: mediagent-postgres
-    environment:
-      POSTGRES_USER: mediagent
-      POSTGRES_PASSWORD: mediagent123
-      POSTGRES_DB: mediagent
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mediagent"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - mediagent-network
-
   redis:
     image: redis:7-alpine
     container_name: mediagent-redis
@@ -32,18 +15,17 @@ services:
       dockerfile: Dockerfile.backend
     container_name: mediagent-backend
     environment:
-      # ✅ Updated to use NeonDB (Cloud PostgreSQL)
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
     volumes:
       - ./backend:/app
+      - ./.env:/app/.env
     networks:
       - mediagent-network
 
@@ -51,28 +33,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
+      args:
+        - REACT_APP_API_URL=http://host.docker.internal:8000
     container_name: mediagent-frontend
     ports:
       - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://host.docker.internal:8000
     depends_on:
       - backend
     networks:
       - mediagent-network
 
-  #evaluation:
-  #  build:
-  #    context: .
-  #    dockerfile: Dockerfile.evaluation
-  #  container_name: mediagent-evaluation
-  #  volumes:
-  #    - ./evaluation:/app
-  #  depends_on:
-  #    - backend
-  #  networks:
-  #    - mediagent-network
-
 volumes:
-  postgres_data:
   redis_data:
 
 networks:
