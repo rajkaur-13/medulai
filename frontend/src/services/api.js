@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = 'http://localhost:8000';
 
 export const api = {
   // ===== AUTH =====
@@ -80,7 +80,37 @@ export const api = {
     return data;
   },
 
-  // ===== IMAGING =====
+  // ===== IMAGING - GET PATIENT IMAGES WITH SIGNED URLS =====
+  async getPatientImagesSigned(token, patientId) {
+    const response = await fetch(`${API_URL}/api/images/signed/${patientId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Failed to fetch images');
+    return data;
+  },
+
+  // ===== IMAGING - UPLOAD ONLY (NO ANALYSIS) =====
+  async uploadImage(token, patientId, file, imageType) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('image_type', imageType);
+    formData.append('analyze', 'false');
+
+    const response = await fetch(
+      `${API_URL}/api/images/upload/${patientId}`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Image upload failed');
+    return data;
+  },
+
+  // ===== IMAGING - UPLOAD AND ANALYZE (LEGACY) =====
   async uploadAndAnalyzeImage(token, patientId, file, imageType) {
     const formData = new FormData();
     formData.append('file', file);
@@ -111,6 +141,39 @@ export const api = {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'Analysis failed');
     return data;
+  },
+
+  // ===== IMAGING - ANALYZE IMAGE =====
+  async analyzeImage(token, studyId, imageType) {
+    const response = await fetch(`${API_URL}/api/images/analyze-json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        study_id: studyId,
+        image_type: imageType 
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Analysis failed');
+    return data;
+  },
+
+  // ===== IMAGING - SAVE REPORT =====
+  async saveImagingReport(token, data) {
+    const response = await fetch(`${API_URL}/api/images/save-report`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Failed to save report');
+    return result;
   }
 };
 
