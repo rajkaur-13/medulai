@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Hugging Face
     HUGGINGFACE_API_KEY: str
     
+    # Gemini
+    GEMINI_API_KEY: str = "" 
+    
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
