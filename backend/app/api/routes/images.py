@@ -10,7 +10,7 @@ from ...services.b2_storage import b2_storage
 from ...services.vision_service import vision_service
 from ...models.patient import Patient
 from ...models.image import Image
-from ...tools.xray_tools import (
+from ...tools.image_tools import (
     analyze_medical_image,
     save_image_analysis,
     update_image_analysis,
@@ -107,7 +107,7 @@ async def upload_image(
             "id": str(new_image.id),
             "image_type": image_type,
             "image_url": result["public_url"],
-            "signed_url": result["signed_url"],  # ← SAVING SIGNED URL
+            "signed_url": result["signed_url"],
             "b2_key": result["file_key"],
             "findings": "Awaiting AI analysis...",
             "confidence": 0.0,
@@ -397,20 +397,22 @@ async def analyze_image_json(
         result = analyze_medical_image(image_base64, image_type)
         
         if result.get("success"):
-            # Update the image record
-            image.analysis = result.get("findings", "")
+            # ✅ Save to separate columns
+            image.findings = result.get("findings", "")
+            image.impression = result.get("impression", "")
+            image.doctor_notes = result.get("recommendation", "")
+            image.analysis = result.get("full_analysis", result.get("findings", ""))
             image.confidence = result.get("confidence", 0.0)
             db.commit()
             
             # Also update analysis_history
-            patient = db.query(Patient).filter(Patient.id == image.patient_id).first()
             if patient and patient.analysis_history:
                 for entry in patient.analysis_history:
                     if entry.get("image_id") == str(image.id):
                         entry["findings"] = result.get("findings", "")
-                        entry["confidence"] = result.get("confidence", 0.0)
                         entry["impression"] = result.get("impression", "")
-                        entry["recommendation"] = result.get("recommendation", "")
+                        entry["doctor_notes"] = result.get("recommendation", "")
+                        entry["confidence"] = result.get("confidence", 0.0)
                         db.commit()
                         break
             
@@ -453,9 +455,11 @@ async def save_imaging_report(
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
         
-        # Combine all analysis data
-        full_analysis = f"FINDINGS:\n{findings}\n\nIMPRESSION:\n{impression}\n\nDOCTOR NOTES:\n{doctor_notes}"
-        image.analysis = full_analysis
+        # ✅ Save to separate columns
+        image.findings = findings
+        image.impression = impression
+        image.doctor_notes = doctor_notes
+        image.analysis = f"FINDINGS:\n{findings}\n\nIMPRESSION:\n{impression}\n\nDOCTOR NOTES:\n{doctor_notes}"
         db.commit()
         
         # Also update analysis_history
@@ -538,12 +542,16 @@ async def get_patient_images_signed(
                 except Exception as e:
                     print(f"⚠️ Failed to generate signed URL: {e}")
             
+            # ✅ Include all fields
             image_data.append({
                 "id": str(img.id),
                 "image_type": img.image_type,
                 "filename": img.filename,
                 "signed_url": signed_url,
                 "analysis": img.analysis,
+                "findings": img.findings,
+                "impression": img.impression,
+                "doctor_notes": img.doctor_notes,
                 "confidence": img.confidence,
                 "uploaded_at": img.uploaded_at.isoformat() if img.uploaded_at else None
             })
