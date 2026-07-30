@@ -27,4 +27,4 @@ starlette==0.36.3
 fastapi==0.109.2
 bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
-google-genai
+google-genai>=1.0.0

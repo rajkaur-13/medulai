@@ -80,6 +80,36 @@ export const api = {
     return data;
   },
 
+  // ===== SOAP NOTES =====
+  async saveSoapNote(token, patientId, data) {
+    const response = await fetch(`${API_URL}/api/soap/?patient_id=${patientId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        patient_id: patientId,
+        subjective: data.subjective || '',
+        objective: data.objective || '',
+        assessment: data.assessment || '',
+        plan: data.plan || ''
+      })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Failed to save SOAP note');
+    return result;
+  },
+
+  async getSoapNotes(token, patientId) {
+    const response = await fetch(`${API_URL}/api/soap/${patientId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'Failed to fetch SOAP notes');
+    return data;
+  },
+
   // ===== IMAGING - GET PATIENT IMAGES WITH SIGNED URLS =====
   async getPatientImagesSigned(token, patientId) {
     const response = await fetch(`${API_URL}/api/images/signed/${patientId}`, {

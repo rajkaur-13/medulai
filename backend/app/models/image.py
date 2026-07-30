@@ -16,6 +16,9 @@ class Image(Base):
     filename = Column(String(255), nullable=False)
     image_data = Column(Text, nullable=True)
     analysis = Column(Text, nullable=True)
+    findings = Column(Text, nullable=True)        
+    impression = Column(Text, nullable=True)      
+    doctor_notes = Column(Text, nullable=True) 
     confidence = Column(Float, nullable=True)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
