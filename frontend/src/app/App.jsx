@@ -15,9 +15,10 @@ import { useAppointments } from '../features/appointments/hooks/useAppointments'
 import ChatPanel from "../features/chat/components/ChatPanel";
 import PatientPanel from "../features/patients/components/PatientPanel";
 import Login from "../features/auth/components/Login";
+import XRayAnalyzer from '../features/imaging/components/XRayAnalyzer';
 import ClinicalPanel from "../features/clinical/components/ClinicalPanel";
 
-// Import API
+// ✅ Add this import
 import { api } from '../services/api';
 
 function App() {
@@ -75,19 +76,22 @@ How can I help you today?`;
     prescription,
     setPrescription,
     handleGeneratePrescription
-  } = usePrescription(token, currentPatient, handleDirectPatientSelect);
+  } = usePrescription(token, currentPatient, handleDirectPatientSelect, setMessages);
 
   // ===== APPOINTMENTS =====
   const { getRelativeDate, upcomingAppointments } = useAppointments(recentAppointments);
 
   // ===== STATE =====
+  const [activeTab, setActiveTab] = useState('soap');
   const [mobileTab, setMobileTab] = useState('chat');
+  const hasPatientSelected = currentPatient !== null;
 
-  // ===== Expose for clickable patient names =====
+  // ===== Expose for clickable patient names and example pills =====
   useEffect(() => {
     window.directSelectPatient = handleDirectPatientSelect;
     window.directSetInput = (text) => {
       setInput(text);
+      // Focus the input after a small delay
       setTimeout(() => {
         const inputElement = document.querySelector('.chat-input-premium');
         if (inputElement) inputElement.focus();
@@ -98,22 +102,28 @@ How can I help you today?`;
   // ===== AUTO-LOAD PATIENT INTO CHAT WHEN SELECTED =====
   useEffect(() => {
     if (currentPatient && token) {
+      // ✅ Check if the last message is a prescription (don't override it)
+      const lastMessage = messages[messages.length - 1];
+      const isPrescription = lastMessage && 
+        (lastMessage.text.includes('Prescription generated') || 
+         lastMessage.text.includes('Medication:'));
+      
+      // Check if patient info already exists in chat
       const patientInfoExists = messages.some(msg => 
-        msg.text && (
-          msg.text.includes(`Patient Selected: ${currentPatient.name}`) ||
-          msg.text.includes(`✅ Patient Selected: ${currentPatient.name}`) ||
-          msg.text.includes(`Clinical Snapshot for ${currentPatient.name}`) ||
-          msg.text.includes(`I've loaded the patient context`)
-        )
+        msg.text && msg.text.includes(`Patient Selected: ${currentPatient.name}`)
       );
 
-      if (!patientInfoExists && messages.length > 1) {
+      // ✅ Only add if not already showing, not welcome message, and not a prescription
+      if (!patientInfoExists && messages.length > 0 && !isPrescription) {
+        // ✅ Send a message to backend to get full patient data
         const fetchFullPatient = async () => {
           try {
-            console.log('🔄 Loading patient data for:', currentPatient.name);
+            // Send a message to get the full patient data
             const fullDataMessage = `Show me ${currentPatient.name}`;
             const data = await api.sendChatMessage(token, fullDataMessage);
             
+            // The backend will return the full patient data with all sections
+            // The formatter will then display the premium Clinical Snapshot Card
             setMessages(prev => [...prev, {
               id: Date.now().toString(),
               text: data.reply,
@@ -122,21 +132,17 @@ How can I help you today?`;
             }]);
           } catch (error) {
             console.error('Error fetching patient data:', error);
-            const alreadyLoaded = messages.some(msg => 
-              msg.text && msg.text.includes(currentPatient.name)
-            );
-            if (!alreadyLoaded) {
-              const fallbackMessage = `✅ Patient Selected: ${currentPatient.name}
+            // Fallback: show basic info
+            const fallbackMessage = `✅ Patient Selected: ${currentPatient.name}
 📋 Demographics: MRN: ${currentPatient.mrn} | Age: ${currentPatient.age} | Gender: ${currentPatient.gender}
 
 How can I help you with ${currentPatient.name} today?`;
-              setMessages(prev => [...prev, {
-                id: Date.now().toString(),
-                text: fallbackMessage,
-                isUser: false,
-                timestamp: new Date()
-              }]);
-            }
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              text: fallbackMessage,
+              isUser: false,
+              timestamp: new Date()
+            }]);
           }
         };
         
@@ -156,7 +162,7 @@ How can I help you with ${currentPatient.name} today?`;
     sendChatMessage(input, token, currentPatient, setCurrentPatient, setPatientCache, setAllPatientNames, allPatientNames);
   };
 
-  // Handle analysis complete
+  // Handle analysis complete from X-Ray or Analyze button
   const handleAnalysisComplete = (analysis) => {
     if (analysis?.formatted_response) {
       const formatMessage = (text) => {
@@ -173,6 +179,10 @@ How can I help you with ${currentPatient.name} today?`;
         timestamp: new Date() 
       }]);
     }
+  };
+
+  const renderMessage = (text) => {
+    return { __html: text };
   };
 
   // ===== RENDER =====
@@ -194,6 +204,7 @@ How can I help you with ${currentPatient.name} today?`;
         </div>
       </header>
 
+      {/* Mobile Navigation */}
       <div className="mobile-top-nav">
         <button 
           className={`mobile-top-btn ${mobileTab === 'patients' ? 'active' : ''}`}
@@ -219,6 +230,7 @@ How can I help you with ${currentPatient.name} today?`;
       </div>
 
       <div className="main-container">
+        {/* ===== LEFT PANEL - PATIENTS ===== */}
         <PatientPanel
           patients={patients}
           currentPatient={currentPatient}
@@ -236,6 +248,7 @@ How can I help you with ${currentPatient.name} today?`;
           handlePatientClick={handlePatientClick}
         />
 
+        {/* ===== CENTER PANEL - CHAT ===== */}
         <ChatPanel
           messages={messages}
           loading={loading}
@@ -246,23 +259,25 @@ How can I help you with ${currentPatient.name} today?`;
           messagesEndRef={messagesEndRef}
         />
 
+        {/* ===== RIGHT PANEL - CLINICAL DOCUMENTATION ===== */}
         <ClinicalPanel
-          currentPatient={currentPatient}
-          token={token}
-          soapNote={soapNote}
-          setSoapNote={setSoapNote}
-          handleSaveSoapNote={handleSaveSoapNote}
-          prescription={prescription}
-          setPrescription={setPrescription}
-          handleGeneratePrescription={handleGeneratePrescription}
-          onAnalysisComplete={handleAnalysisComplete}
-          onScheduleFollowUp={(patient) => {
+         currentPatient={currentPatient}
+         token={token}
+         soapNote={soapNote}
+         setSoapNote={setSoapNote}
+         handleSaveSoapNote={handleSaveSoapNote}
+         prescription={prescription}
+         setPrescription={setPrescription}
+         handleGeneratePrescription={handleGeneratePrescription}
+         onAnalysisComplete={handleAnalysisComplete}
+         onScheduleFollowUp={(patient) => {
             if (patient) {
               setInput(`Schedule follow-up for ${patient.name}`);
               setTimeout(() => sendMessage(), 100);
             }
           }}
         />
+
       </div>
     </div>
   );
