@@ -1687,3 +1687,101 @@
 .lock-icon {
   color: #94A3B8;
 }
+
+/* ========================================
+   MEDICATION BUTTON STYLES (UPDATED)
+   ======================================== */
+
+/* Add Medication Button - Blue */
+.add-med-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.add-med-btn:hover {
+  background: #2563eb;
+  transform: scale(1.08);
+}
+
+.add-med-btn:active {
+  transform: scale(0.92);
+}
+
+.add-med-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Remove Medication Button - Red */
+.remove-med-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background: transparent;
+  color: #ef4444;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.remove-med-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  transform: scale(1.08);
+}
+
+.remove-med-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.remove-med-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Add Medication Header Button - Blue */
+.add-medication-header-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.add-medication-header-btn:hover {
+  background: #2563eb !important;
+  transform: scale(1.02);
+}
+
+.add-medication-header-btn:active {
+  transform: scale(0.98);
+}

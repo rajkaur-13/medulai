@@ -890,3 +890,495 @@
 }
 
 
+
+/* ========================================
+   PRESCRIPTION FONT SIZE FIX
+   ======================================== */
+.prescription-section {
+  font-size: 13px;
+}
+
+.prescription-section .section-title {
+  font-size: 15px;
+}
+
+.prescription-card {
+  font-size: 13px;
+}
+
+.prescription-row {
+  font-size: 13px;
+}
+
+.prescription-label {
+  font-size: 12px;
+}
+
+.prescription-value {
+  font-size: 14px;
+}
+
+.dosage-pill {
+  font-size: 12px;
+}
+
+.duration-badge {
+  font-size: 12px;
+}
+
+.prescription-saved-confirmation {
+  font-size: 13px;
+}
+
+/* ========================================
+   PRESCRIPTION FONT SIZE FIX - EXTRA SMALL
+   ======================================== */
+.prescription-section {
+  font-size: 11px;
+}
+
+.prescription-section .section-header {
+  margin-bottom: 8px;
+}
+
+.prescription-section .section-title {
+  font-size: 13px;
+}
+
+.prescription-badge {
+  font-size: 8px;
+  padding: 1px 8px;
+}
+
+.prescription-card {
+  font-size: 11px;
+  padding: 10px 12px;
+}
+
+.prescription-row {
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.prescription-label {
+  font-size: 10px;
+}
+
+.prescription-value {
+  font-size: 12px;
+}
+
+.dosage-pill {
+  font-size: 10px;
+  padding: 1px 8px;
+}
+
+.duration-badge {
+  font-size: 10px;
+  padding: 1px 8px;
+}
+
+.prescription-saved-confirmation {
+  font-size: 11px;
+  padding: 6px 10px;
+  margin-top: 8px;
+}
+
+/* ========================================
+   PRESCRIPTION - EXTRA SMALL FONT
+   ======================================== */
+.prescription-section {
+  font-size: 10px;
+}
+
+.prescription-section .section-header {
+  margin-bottom: 4px;
+}
+
+.prescription-section .section-title {
+  font-size: 11px;
+}
+
+.prescription-badge {
+  font-size: 7px;
+  padding: 1px 6px;
+}
+
+.prescription-card {
+  font-size: 10px;
+  padding: 6px 8px;
+}
+
+.prescription-row {
+  font-size: 10px;
+  padding: 2px 0;
+}
+
+.prescription-label {
+  font-size: 9px;
+  color: #94a3b8;
+}
+
+.prescription-value {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Medication and Dosage - EXTRA SMALL */
+.prescription-row:first-child .prescription-value,
+.prescription-row:nth-child(2) .prescription-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dosage-pill {
+  font-size: 10px;
+  padding: 0px 6px;
+}
+
+.duration-badge {
+  font-size: 10px;
+  padding: 0px 6px;
+}
+
+.prescription-saved-confirmation {
+  font-size: 10px;
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
+/* Make labels smaller */
+.prescription-label {
+  font-size: 9px;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* ========================================
+   PRESCRIPTION - PROPER SPACING & WRAPPING
+   ======================================== */
+.prescription-section {
+  font-size: 10px;
+  padding: 12px 14px;
+}
+
+.prescription-section .section-header {
+  margin-bottom: 8px;
+}
+
+.prescription-section .section-title {
+  font-size: 12px;
+}
+
+.prescription-badge {
+  font-size: 7px;
+  padding: 1px 8px;
+}
+
+.prescription-card {
+  font-size: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prescription-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 0;
+  gap: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.prescription-row:last-child {
+  border-bottom: none;
+}
+
+.prescription-label {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 70px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.prescription-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* Medication and Dosage - slightly bigger */
+.prescription-row:first-child .prescription-value,
+.prescription-row:nth-child(2) .prescription-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dosage-pill {
+  font-size: 10px;
+  padding: 0px 8px;
+  display: inline-block;
+}
+
+.duration-badge {
+  font-size: 10px;
+  padding: 0px 8px;
+  display: inline-block;
+}
+
+.prescription-saved-confirmation {
+  font-size: 10px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* Instructions row - more spacing */
+.instructions-row {
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 2px dashed #e2e8f0;
+}
+
+.instructions-row .prescription-label {
+  padding-top: 2px;
+}
+
+.instructions-row .prescription-value {
+  font-weight: 400;
+  color: #475569;
+  font-size: 11px;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .prescription-row {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 0;
+  }
+  
+  .prescription-label {
+    min-width: auto;
+  }
+}
+
+/* ========================================
+   PRESCRIPTION - COMPACT WITH SMALL VALUES
+   ======================================== */
+.prescription-section {
+  font-size: 10px;
+  padding: 8px 10px;
+}
+
+.prescription-section .section-header {
+  margin-bottom: 4px;
+}
+
+.prescription-section .section-title {
+  font-size: 11px;
+}
+
+.prescription-badge {
+  font-size: 7px;
+  padding: 0px 6px;
+}
+
+.prescription-card {
+  font-size: 10px;
+  padding: 4px 6px;
+}
+
+.prescription-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  gap: 8px;
+  border-bottom: none;
+}
+
+.prescription-label {
+  font-size: 8px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 55px;
+  flex-shrink: 0;
+}
+
+.prescription-value {
+  font-size: 10px;
+  font-weight: 500;
+  color: #0f172a;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  flex: 1;
+  line-height: 1.3;
+}
+
+/* Medication and Dosage - slightly bigger but still small */
+.prescription-row:first-child .prescription-value,
+.prescription-row:nth-child(2) .prescription-value {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dosage-pill {
+  font-size: 9px;
+  padding: 0px 4px;
+  display: inline-block;
+}
+
+.duration-badge {
+  font-size: 9px;
+  padding: 0px 4px;
+  display: inline-block;
+}
+
+.prescription-saved-confirmation {
+  font-size: 9px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.instructions-row .prescription-value {
+  font-size: 9px;
+  font-weight: 400;
+  color: #475569;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .prescription-row {
+    flex-direction: row;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  
+  .prescription-label {
+    min-width: 50px;
+    font-size: 7px;
+  }
+  
+  .prescription-value {
+    font-size: 10px;
+  }
+}
+
+/* ========================================
+   PRESCRIPTION - ALL VALUES SAME SMALL SIZE
+   ======================================== */
+.prescription-section {
+  font-size: 10px;
+  padding: 8px 10px;
+}
+
+.prescription-section .section-header {
+  margin-bottom: 4px;
+}
+
+.prescription-section .section-title {
+  font-size: 11px;
+}
+
+.prescription-badge {
+  font-size: 7px;
+  padding: 0px 6px;
+}
+
+.prescription-card {
+  font-size: 10px;
+  padding: 4px 6px;
+}
+
+.prescription-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 0;
+  gap: 8px;
+  border-bottom: none;
+}
+
+.prescription-label {
+  font-size: 8px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-width: 55px;
+  flex-shrink: 0;
+}
+
+/* ✅ ALL VALUES - SAME SMALL SIZE */
+.prescription-value {
+  font-size: 10px;
+  font-weight: 500;
+  color: #0f172a;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  flex: 1;
+  line-height: 1.3;
+}
+
+/* ✅ Medication and Dosage - SAME SIZE AS OTHERS */
+.prescription-row:first-child .prescription-value,
+.prescription-row:nth-child(2) .prescription-value {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dosage-pill {
+  font-size: 10px;
+  padding: 0px 4px;
+  display: inline-block;
+}
+
+.duration-badge {
+  font-size: 10px;
+  padding: 0px 4px;
+  display: inline-block;
+}
+
+.prescription-saved-confirmation {
+  font-size: 9px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.instructions-row .prescription-value {
+  font-size: 10px;
+  font-weight: 400;
+  color: #475569;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .prescription-row {
+    flex-direction: row;
+    gap: 6px;
+    padding: 4px 0;
+  }
+  
+  .prescription-label {
+    min-width: 50px;
+    font-size: 7px;
+  }
+  
+  .prescription-value {
+    font-size: 10px;
+  }
+}
