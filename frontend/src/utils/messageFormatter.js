@@ -24,43 +24,61 @@ export const formatMedicalMessage = (text, isUser = false) => {
   
   // ===== STEP 1: DETECT CONTENT TYPE =====
   const isPatientList = formatted.includes('Found') && formatted.includes('patients in your clinic');
-  const isPatientSelected = formatted.includes('Patient Selected:') || formatted.includes('✓ Patient Selected');
-  const isSOAPNote = formatted.includes('SUBJECTIVE:') || formatted.includes('Objective:') || formatted.includes('SOAP Note');
-  const isPrescription = formatted.includes('Prescription') && formatted.includes('Medication:');
+  const isPatientSelected = formatted.includes('Patient Selected:') || formatted.includes('✓ Patient Selected') || formatted.includes('Patient Summary:');
+  const isSOAPNote = formatted.includes('SUBJECTIVE:') || formatted.includes('SUBJECTIVE') || formatted.includes('Objective:') || formatted.includes('SOAPNote') || formatted.includes('SOAP Notes for');
+  const isPrescription = formatted.includes('Prescription generated') || 
+                         (formatted.includes('Medication:') && formatted.includes('Dosage:'));
   const isAppointment = formatted.includes('Appointment') && formatted.includes('scheduled');
   const isMedicalAdvice = formatted.includes('Diagnosis') || formatted.includes('Treatment') || formatted.includes('Red Flags');
+  
+  // ✅ NEW: Detect section view responses
+  const isSectionView = formatted.includes('Active Medications for') || 
+                        formatted.includes('Active Prescriptions for') ||
+                        formatted.includes('All Prescriptions for') ||
+                        formatted.includes('All Prescriptions for') ||
+                        formatted.includes('Imaging Reports for') ||
+                        formatted.includes('Upcoming Appointments for') ||
+                        formatted.includes('No active medications') ||
+                        formatted.includes('No active prescriptions') ||
+                        formatted.includes('No imaging reports found') ||
+                        formatted.includes('No upcoming appointments');
   
   // ===== STEP 2: PATIENT LIST =====
   if (isPatientList) {
     return formatPatientList(formatted);
   }
   
-  // ===== STEP 3: PATIENT SELECTED =====
-  if (isPatientSelected) {
-    return formatPatientSelected(formatted);
-  }
-  
-  // ===== STEP 4: SOAP NOTE =====
-  if (isSOAPNote) {
-    return formatSOAPNote(formatted);
-  }
-  
-  // ===== STEP 5: PRESCRIPTION =====
+  // ===== STEP 3: PRESCRIPTION =====
   if (isPrescription) {
     return formatPrescription(formatted);
   }
   
-  // ===== STEP 6: APPOINTMENT =====
+  // ===== STEP 4: PATIENT SELECTED =====
+  if (isPatientSelected) {
+    return formatPatientSelected(text);
+  }
+  
+  // ===== STEP 5: SECTION VIEW (NEW) =====
+  if (isSectionView) {
+    return formatSectionView(formatted);
+  }
+  
+  // ===== STEP 6: SOAP NOTE =====
+  if (isSOAPNote) {
+    return formatSOAPNote(formatted);
+  }
+  
+  // ===== STEP 7: APPOINTMENT =====
   if (isAppointment) {
     return formatAppointment(formatted);
   }
   
-  // ===== STEP 7: MEDICAL ADVICE =====
+  // ===== STEP 8: MEDICAL ADVICE =====
   if (isMedicalAdvice) {
     return formatMedicalAdvice(formatted);
   }
   
-  // ===== STEP 8: DEFAULT - Format with basic enhancements =====
+  // ===== STEP 8: DEFAULT =====
   return formatDefault(formatted);
 };
 
@@ -69,50 +87,547 @@ export const formatMedicalMessage = (text, isUser = false) => {
 // ========================================
 
 const icons = {
-  // Alert Triangle (Red)
   alertTriangle: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`,
   
-  // Heart Pulse (Purple)
   heartPulse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5H21"/></svg>`,
   
-  // Pill (Green)
   pill: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 0-7l2-2a4.95 4.95 0 0 1 7 0l7 7a4.95 4.95 0 0 1 0 7l-2 2a4.95 4.95 0 0 1-7 0Z"/><path d="m8.5 8.5 7 7"/></svg>`,
   
-  // File Text (Blue)
   fileText: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
   
-  // Notebook Pen (Amber)
   notebookPen: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M18.4 2.6a2 2 0 0 1 2.8 2.8l-9 9-4.2 1.4 1.4-4.2Z"/></svg>`,
   
-  // Scan Line (Indigo)
-  scanLine: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>`,
+  scanLine: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12"x2="17" y2="12"/></svg>`,
   
-  // Calendar Days (Green)
   calendarDays: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>`,
   
-  // Brain (Blue gradient)
   brain: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 0 1 3.5 6A4 4 0 0 1 12 20a4 4 0 0 1-3.5-6A4 4 0 0 1 12 4Z"/><path d="M12 10v4"/><path d="M10 12h4"/></svg>`,
   
-  // Check Circle (Green)
   checkCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
   
-  // Chevron Right
   chevronRight: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
 };
 
 // ========================================
-// CONTENT TYPE FORMATTERS
+// PATIENT SELECTED - NEW CARD DESIGN
 // ========================================
 
-/**
- * Format patient list as clean search result rows
- */
+function formatPatientSelected(text) {
+  // ===== EXTRACT PATIENT DATA FROM TEXT =====
+  // First, try to extract from the text using patterns
+  let patientName = 'Patient';
+  let mrn = 'N/A', age = 'N/A', gender = 'N/A';
+  let allergies = 'None', conditions = 'None';
+  let medications = [];
+  let soapNotes = [];
+  let prescriptions = [];
+  let images = [];
+  let appointments = [];
+  
+  // Extract patient name
+  let nameMatch = text.match(/Patient Selected:\s*([^\n]+)/);
+  if (nameMatch) {
+    patientName = nameMatch[1].trim().replace(/\*\*/g, '');
+  }
+  
+  if (!nameMatch) {
+    nameMatch = text.match(/Patient Summary:\s*([^\n]+)/);
+    if (nameMatch) {
+      patientName = nameMatch[1].trim().replace(/\*\*/g, '');
+    }
+  }
+  
+  // Extract demographics
+  const demoMatch = text.match(/Demographics:\s*([^\n]+)/);
+  if (demoMatch) {
+    const parts = demoMatch[1].split('|').map(s => s.trim());
+    parts.forEach(part => {
+      if (part.includes('MRN:')) mrn = part.replace('MRN:', '').trim();
+      if (part.includes('Age:')) age = part.replace('Age:', '').trim();
+      if (part.includes('Gender:')) gender = part.replace('Gender:', '').trim();
+    });
+  }
+  
+  // Extract medical history
+  const historyMatch = text.match(/Medical History:\s*([^\n]+)/);
+  if (historyMatch) {
+    const historyText = historyMatch[1];
+    const allergyMatch = historyText.match(/Allergies:\s*([^|]+)/);
+    const conditionMatch = historyText.match(/Conditions:\s*([^|]+)/);
+    if (allergyMatch) allergies = allergyMatch[1].trim() || 'None';
+    if (conditionMatch) conditions = conditionMatch[1].trim() || 'None';
+  }
+  
+  // Extract medications
+  const medsMatch = text.match(/Current Medications:\s*([^\n]+)/);
+  if (medsMatch) {
+    const medsText = medsMatch[1].trim();
+    if (medsText !== 'None' && medsText !== '') {
+      medications = medsText.split(',').map(m => m.trim().replace(/\*\*/g, '').trim()).filter(m => m !== 'None' && m !== '');
+    }
+  }
+  
+  // Extract SOAP notes count
+  let soapCount = 0;
+  if (text.includes('No SOAP notes') || text.includes('No SOAP notes yet')) {
+    soapCount = 0;
+  } else {
+    const soapSection = text.match(/SOAP Notes?\s*\((\d+)\)/i);
+    if (soapSection) {
+      soapCount = parseInt(soapSection[1]);
+    }
+    if (soapCount === 0) {
+      const soapContent = text.match(/Latest SOAP Note:\s*\n?\s*([^\n]+)/i);
+      if (soapContent && !soapContent[1].includes('No SOAP notes')) {
+        soapCount = 1;
+      }
+    }
+  }
+  
+  // Extract prescriptions count
+  let rxCount = 0;
+  const noRxMatch = text.match(/No prescriptions yet/i);
+  if (!noRxMatch) {
+    const rxSection = text.match(/Prescriptions?\s*\((\d+)\)/i);
+    if (rxSection) {
+      rxCount = parseInt(rxSection[1]);
+    }
+  }
+  
+  // Extract appointments count
+  let aptCount = 0;
+  if (!text.includes('No appointments scheduled') && !text.includes('No upcoming appointments')) {
+    const aptSection = text.match(/Appointments?\s*\((\d+)\)/i);
+    if (aptSection) {
+      aptCount = parseInt(aptSection[1]);
+    }
+  }
+  
+  // Extract imaging reports count
+  let imgCount = 0;
+  const noImgMatch = text.match(/No images analyzed yet/i);
+  if (!noImgMatch) {
+    const imgSection = text.match(/Imaging Reports?\s*\((\d+)\)/i);
+    if (imgSection) {
+      imgCount = parseInt(imgSection[1]);
+    }
+  }
+  
+  // ===== BUILD THE NEW CARD =====
+  const allergyList = allergies !== 'None' ? allergies.split(',').map(a => a.trim()).filter(a => a !== '') : [];
+  const conditionList = conditions !== 'None' ? conditions.split(',').map(c => c.trim()).filter(c => c !== '') : [];
+  
+  // Get first 3 medications
+  const displayMeds = medications.slice(0, 3);
+  const medMore = medications.length > 3 ? medications.length - 3 : 0;
+  
+  // Build the card
+  let result = `
+    <div class="premium-snapshot-card">
+      <div class="snapshot-intro">
+        I've loaded the patient context. Here's the clinical snapshot for ${patientName}.
+      </div>
+      
+      <div class="snapshot-inner-card">
+        
+        <div class="snapshot-status">
+          <span class="status-check">${icons.checkCircle}</span>
+          <span class="status-text">Patient Selected</span>
+        </div>
+        
+        <div class="snapshot-identity">
+          <div class="identity-avatar">
+            <span class="avatar-initial">${patientName.charAt(0)}</span>
+          </div>
+          <div class="identity-info">
+            <div class="identity-name">${patientName.replace(/\*\*/g, '')}</div>
+            <div class="identity-meta">${mrn.replace(/\*\*/g, '')} • ${gender.replace(/\*\*/g, '')} • ${age.replace(/\*\*/g, '')} Years</div>
+            <div class="identity-since">Patient Since ${new Date().getFullYear() - 1}</div>
+          </div>
+        </div>
+        
+        <div class="snapshot-alerts-row">
+          <div class="alert-card alert-allergy">
+            <div class="alert-icon-wrapper alert-icon-red">
+              <span class="alert-icon">${icons.alertTriangle}</span>
+            </div>
+            <div class="alert-content">
+              <div class="alert-label">Allergies</div>
+              <div class="alert-value">${allergyList.length > 0 ? allergyList.join(', ') : 'None'}</div>
+            </div>
+            <span class="alert-chevron">${icons.chevronRight}</span>
+          </div>
+          <div class="alert-card alert-condition">
+            <div class="alert-icon-wrapper alert-icon-purple">
+              <span class="alert-icon">${icons.heartPulse}</span>
+            </div>
+            <div class="alert-content">
+              <div class="alert-label">Active Conditions</div>
+              <div class="alert-value">${conditionList.length > 0 ? conditionList.join(', ') : 'None'}</div>
+            </div>
+            <span class="alert-chevron">${icons.chevronRight}</span>
+          </div>
+        </div>
+        
+        <!-- Active Medications -->
+        <div class="snapshot-section" onclick="window.viewSection('medications', '${patientName}')">
+          <div class="snapshot-section-header">
+            <div class="snapshot-section-left">
+              <span class="snapshot-section-icon">💊</span>
+              <span class="snapshot-section-title">Active Medications</span>
+              <span class="snapshot-section-count">${medications.length}</span>
+            </div>
+            <div class="snapshot-section-action">
+              ${medications.length > 3 ? `+${medMore} Medications` : ''}
+              <span class="action-chevron">${icons.chevronRight}</span>
+            </div>
+          </div>
+          <div class="snapshot-section-items">
+            ${displayMeds.length > 0 ? displayMeds.map(m => `<div class="snapshot-section-item">• ${m.replace(/\*\*/g, '').trim()}</div>`).join('') : `<div class="snapshot-section-empty">No active medications</div>`}
+          </div>
+        </div>
+        
+        <!-- Active Prescriptions -->
+        <div class="snapshot-section" onclick="window.viewSection('prescriptions', '${patientName}')">
+          <div class="snapshot-section-header">
+            <div class="snapshot-section-left">
+              <span class="snapshot-section-icon">📄</span>
+              <span class="snapshot-section-title">Active Prescriptions</span>
+              <span class="snapshot-section-count">${rxCount}</span>
+            </div>
+            <div class="snapshot-section-action">
+              ${rxCount > 3 ? `+${rxCount - 3} Prescriptions` : ''}
+              <span class="action-chevron">${icons.chevronRight}</span>
+            </div>
+          </div>
+          <div class="snapshot-section-items">
+            ${rxCount > 0 ? `<div class="snapshot-section-item">• ${rxCount} active prescription(s)</div>` : `<div class="snapshot-section-empty">No active prescriptions</div>`}
+          </div>
+        </div>
+        
+        <!-- SOAP Notes -->
+        <div class="snapshot-section" onclick="window.viewSection('soap', '${patientName}')">
+          <div class="snapshot-section-header">
+            <div class="snapshot-section-left">
+              <span class="snapshot-section-icon">📝</span>
+              <span class="snapshot-section-title">SOAP Notes</span>
+              <span class="snapshot-section-count">${soapCount}</span>
+            </div>
+            <div class="snapshot-section-action">
+              ${soapCount > 0 ? 'View SOAP Notes' : ''}
+              <span class="action-chevron">${icons.chevronRight}</span>
+            </div>
+          </div>
+          <div class="snapshot-section-items">
+            ${soapCount > 0 ? `<div class="snapshot-section-item">• ${soapCount} SOAP note(s) available</div>` : `<div class="snapshot-section-empty">No SOAP notes available</div>`}
+          </div>
+        </div>
+        
+        <!-- Imaging Reports -->
+        <div class="snapshot-section" onclick="window.viewSection('imaging', '${patientName}')">
+          <div class="snapshot-section-header">
+            <div class="snapshot-section-left">
+              <span class="snapshot-section-icon">🩻</span>
+              <span class="snapshot-section-title">Imaging Reports</span>
+              <span class="snapshot-section-count">${imgCount}</span>
+            </div>
+            <div class="snapshot-section-action">
+              ${imgCount > 3 ? `+${imgCount - 3} Reports` : ''}
+              <span class="action-chevron">${icons.chevronRight}</span>
+            </div>
+          </div>
+          <div class="snapshot-section-items">
+            ${imgCount > 0 ? `<div class="snapshot-section-item">• ${imgCount} report(s) available</div>` : `<div class="snapshot-section-empty">No imaging reports available</div>`}
+          </div>
+        </div>
+        
+        <!-- Upcoming Appointments -->
+        <div class="snapshot-section" onclick="window.viewSection('appointments', '${patientName}')">
+          <div class="snapshot-section-header">
+            <div class="snapshot-section-left">
+              <span class="snapshot-section-icon">📅</span>
+              <span class="snapshot-section-title">Upcoming Appointments</span>
+              <span class="snapshot-section-count">${aptCount}</span>
+            </div>
+            <div class="snapshot-section-action">
+              ${aptCount > 3 ? `+${aptCount - 3} Appointments` : ''}
+              <span class="action-chevron">${icons.chevronRight}</span>
+            </div>
+          </div>
+          <div class="snapshot-section-items">
+            ${aptCount > 0 ? `<div class="snapshot-section-item">• ${aptCount} upcoming appointment(s)</div>` : `<div class="snapshot-section-empty">No upcoming appointments</div>`}
+          </div>
+        </div>
+        
+        <!-- Analyze & Recommend CTA -->
+        <div class="snapshot-cta">
+          <div class="cta-content">
+            <div class="cta-icon">${icons.brain}</div>
+            <div class="cta-info">
+              <div class="cta-title">Analyze &amp; Recommend</div>
+              <div class="cta-desc">Get clinical insights, risk assessment, recommendations, and follow-up guidance.</div>
+            </div>
+          </div>
+          <button class="cta-btn" onclick="window.analyzePatient('${patientName}')">Analyze Patient</button>
+        </div>
+        
+        <div class="snapshot-footer">
+          ℹ Clinical snapshot based on the latest available data.
+        </div>
+        
+      </div>
+    </div>
+  `;
+  
+  return result;
+}
+
+// ========================================
+// SECTION VIEW HANDLER (to be attached to window)
+// ========================================
+
+// This will be called when a section is clicked
+window.viewSection = function(section, patientName) {
+  // This function will be overridden in App.jsx
+  // We'll handle the actual logic there
+  console.log(`📊 Viewing ${section} for ${patientName}`);
+  
+  // Trigger a custom event that App.jsx can listen to
+  const event = new CustomEvent('viewSection', { 
+    detail: { section, patientName } 
+  });
+  window.dispatchEvent(event);
+};
+
+window.analyzePatient = function(patientName) {
+  console.log(`🔍 Analyzing patient: ${patientName}`);
+  const event = new CustomEvent('analyzePatient', { 
+    detail: { patientName } 
+  });
+  window.dispatchEvent(event);
+};
+
+// ========================================
+// OTHER FORMATTERS (unchanged)
+// ========================================
+
+function formatSectionView(text) {
+  // Format section view responses
+  // Check if this is a prescriptions response
+  const isPrescriptions = text.includes('All Prescriptions for') || text.includes('Active Prescriptions for');
+  
+  console.log('🔍 formatSectionView called');
+  console.log('🔍 isPrescriptions:', isPrescriptions);
+  console.log('🔍 text starts with:', text.substring(0, 50));
+  
+  if (isPrescriptions) {
+    console.log('🔍 Calling formatPrescriptionsGrouped');
+    return formatPrescriptionsGrouped(text);
+  }
+  
+  // Default formatting for other section views
+  let formatted = text.replace(/\*\*/g, '');
+  formatted = formatted.replace(/\n/g, '<br/>');
+  const lines = text.split('\n');
+  let result = '';
+  
+  for (const line of lines) {
+    if (line.trim() === '') continue;
+    if (line.includes('Active Medications') || line.includes('SOAP Notes') || 
+        line.includes('Imaging Reports') || line.includes('Upcoming Appointments') ||
+        line.includes('No active') || line.includes('No SOAP') || line.includes('No imaging')) {
+      result += `<div class="section-view-header">${line.replace(/\*\*/g, '')}</div>`;
+    } else if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+      result += `<div class="section-view-item">${line}</div>`;
+    } else if (line.includes('Medication:') || line.includes('Dosage:') || 
+               line.includes('Frequency:') || line.includes('Duration:') || 
+               line.includes('Prescribed:') || line.includes('Assessment:') ||
+               line.includes('Findings:') || line.includes('Reason:') || line.includes('---')) {
+      result += `<div class="section-view-detail">${line.replace(/\*\*/g, '')}</div>`;
+    } else if (line.includes('✅')) {
+      result += `<div class="section-view-success">${line}</div>`;
+    } else {
+      result += `<div class="section-view-content">${line}</div>`;
+    }
+  }
+  
+  return `<div class="section-view-container">${result}</div>`;
+}
+
+// New function: Format prescriptions grouped by date
+function formatPrescriptionsGrouped(text) {
+  console.log("formatPrescriptionsGrouped called");
+  const lines = text.split("\n").filter(line => line.trim());
+  let prescriptions = [];
+  
+  const headerMatch = text.match(/(📄 All Prescriptions for [^\n]+)/);
+  const patientName = headerMatch ? headerMatch[1].replace("📄 All Prescriptions for ", "") : "";
+  
+  let currentPrescription = {};
+  
+  for (const line of lines) {
+    if (line.includes("All Prescriptions for") || line.includes("Active Prescriptions for")) continue;
+    if (line.includes("📌 Showing")) continue;
+    if (line.includes("---")) continue;
+    
+    const medMatch = line.match(/^[✅⏹️]\s*(.+)$/);
+    if (medMatch) {
+      if (Object.keys(currentPrescription).length > 0 && currentPrescription.name) {
+        prescriptions.push({ ...currentPrescription });
+        currentPrescription = {};
+      }
+      currentPrescription = { 
+        name: medMatch[1].trim(),
+        status: line.includes("✅") ? "active" : "inactive"
+      };
+      continue;
+    }
+    
+    const trimmedLine = line.trim();
+    if (trimmedLine.includes("Dosage:")) {
+      currentPrescription.dosage = trimmedLine.replace("Dosage:", "").trim();
+    } else if (trimmedLine.includes("Frequency:")) {
+      currentPrescription.frequency = trimmedLine.replace("Frequency:", "").trim();
+    } else if (trimmedLine.includes("Duration:")) {
+      currentPrescription.duration = trimmedLine.replace("Duration:", "").trim();
+    } else if (trimmedLine.includes("Route:")) {
+      currentPrescription.route = trimmedLine.replace("Route:", "").trim();
+    } else if (trimmedLine.includes("Prescribed:")) {
+      currentPrescription.prescribed = trimmedLine.replace("Prescribed:", "").trim();
+      const dateMatch = trimmedLine.match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) currentPrescription.date = dateMatch[1];
+    } else if (trimmedLine.includes("Instructions:") || trimmedLine.includes("instructions:")) {
+      currentPrescription.instructions = trimmedLine.replace(/Instructions:|instructions:/i, "").trim();
+    }
+  }
+  
+  if (Object.keys(currentPrescription).length > 0 && currentPrescription.name) {
+    prescriptions.push({ ...currentPrescription });
+  }
+  
+  const grouped = {};
+  for (const rx of prescriptions) {
+    const date = rx.date || rx.prescribed || "Unknown";
+    if (!grouped[date]) grouped[date] = [];
+    grouped[date].push(rx);
+  }
+  
+  const sortedDates = Object.keys(grouped).filter(d => d !== "Unknown").sort((a, b) => new Date(b) - new Date(a));
+  const unknownDate = grouped["Unknown"] || [];
+  
+  if (sortedDates.length === 0 && unknownDate.length === 0) {
+    let fallback = text.replace(/\*\*/g, "");
+    fallback = fallback.replace(/\n/g, "<br/>");
+    return "<div class=\"section-view-container\">" + fallback + "</div>";
+  }
+  
+  let display = "";
+  
+  // Header with 14px font
+  display += "<div class=\"prescriptions-premium-header\" style=\"font-size:14px;\">" +
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2563EB\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><line x1=\"16\" y1=\"13\" x2=\"8\" y2=\"13\"/><line x1=\"16\" y1=\"17\" x2=\"8\" y2=\"17\"/><polyline points=\"10 9 9 9 8 9\"/></svg>" +
+    "<span>All Prescriptions for " + patientName + "</span>" +
+  "</div>";
+  
+  for (const date of sortedDates) {
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString("en-US", { 
+      year: "numeric", 
+      month: "short", 
+      day: "numeric" 
+    });
+    
+    display += "<div class=\"prescriptions-premium-date-group\">" +
+      "<div class=\"prescriptions-premium-date-header\">" +
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#64748B\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>" +
+        "<span class=\"prescriptions-premium-date-text\">" + formattedDate + "</span>" +
+      "</div>" +
+      "<div class=\"prescriptions-premium-divider\"></div>";
+    
+    for (const rx of grouped[date]) {
+      // Lucide Pill icon with proper styling
+      display += "<div class=\"prescription-premium-card-compact\">" +
+        "<div class=\"prescription-premium-row\">" +
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2563EB\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 0-7l2-2a4.95 4.95 0 0 1 7 0l7 7a4.95 4.95 0 0 1 0 7l-2 2a4.95 4.95 0 0 1-7 0Z\"/><path d=\"m8.5 8.5 7 7\"/></svg>" +
+          "<span class=\"prescription-premium-name\">" + rx.name + "</span>" +
+        "</div>" +
+        "<div class=\"prescription-premium-details\">" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Dosage</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.dosage || "N/A") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Route</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.route || "Oral") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Frequency</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.frequency || "N/A") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Duration</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.duration || "N/A") + "</span>" +
+          "</div>";
+      // Special Instructions - check both instructions and special_instructions
+      const instructionsText = rx.instructions || rx.special_instructions || "";
+      if (instructionsText) {
+        display += "<div class=\"prescription-premium-detail instructions-premium\">" +
+            "<span class=\"prescription-premium-label\">Special Instructions</span>" +
+            "<span class=\"prescription-premium-value\">" + instructionsText + "</span>" +
+          "</div>";
+      }
+      display += "</div></div>";
+    }
+    
+    display += "</div>";
+  }
+  
+  if (unknownDate.length > 0) {
+    display += "<div class=\"prescriptions-premium-date-group\">" +
+      "<div class=\"prescriptions-premium-date-header\">" +
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#64748B\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg>" +
+        "<span class=\"prescriptions-premium-date-text\">Unknown Date</span>" +
+      "</div>" +
+      "<div class=\"prescriptions-premium-divider\"></div>";
+    for (const rx of unknownDate) {
+      display += "<div class=\"prescription-premium-card-compact\">" +
+        "<div class=\"prescription-premium-row\">" +
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#2563EB\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 0-7l2-2a4.95 4.95 0 0 1 7 0l7 7a4.95 4.95 0 0 1 0 7l-2 2a4.95 4.95 0 0 1-7 0Z\"/><path d=\"m8.5 8.5 7 7\"/></svg>" +
+          "<span class=\"prescription-premium-name\">" + rx.name + "</span>" +
+        "</div>" +
+        "<div class=\"prescription-premium-details\">" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Dosage</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.dosage || "N/A") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Route</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.route || "Oral") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Frequency</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.frequency || "N/A") + "</span>" +
+          "</div>" +
+          "<div class=\"prescription-premium-detail\">" +
+            "<span class=\"prescription-premium-label\">Duration</span>" +
+            "<span class=\"prescription-premium-value\">" + (rx.duration || "N/A") + "</span>" +
+          "</div>" +
+        "</div></div>";
+    }
+    display += "</div>";
+  }
+  
+  const countMatch = text.match(/📌 Showing (\d+) prescription/);
+  if (countMatch) {
+    display += "<div class=\"prescriptions-premium-footer\">📌 Showing " + countMatch[1] + " prescription(s).</div>";
+  }
+  
+  return "<div class=\"prescriptions-premium-container\">" + display + "</div>";
+}
+
 function formatPatientList(text) {
-  // Extract all patient lines
   const lines = text.split('\n');
   const patientLines = lines.filter(line => line.includes('•') || line.includes('MRN'));
-  
-  // Get count
   const count = patientLines.length;
   
   let result = `
@@ -126,7 +641,6 @@ function formatPatientList(text) {
   `;
   
   patientLines.forEach(line => {
-    // Extract patient name, MRN, Age
     const nameMatch = line.match(/•\s*([^(]+?)\s*\(/);
     const mrnMatch = line.match(/MRN:\s*([^,)]+)/);
     const ageMatch = line.match(/Age:\s*(\d+)/);
@@ -135,7 +649,6 @@ function formatPatientList(text) {
     const mrn = mrnMatch ? mrnMatch[1].trim() : 'N/A';
     const age = ageMatch ? ageMatch[1] : 'N/A';
     
-    // Get initials
     const initials = name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
     
     result += `
@@ -172,518 +685,296 @@ function formatPatientList(text) {
   return result;
 }
 
-/**
- * Format patient selected as premium Clinical Snapshot Card with Lucide icons
- * Only shows when patient data is explicitly requested
- */
-function formatPatientSelected(text) {
-  // ===== IF NO PATIENT DATA, RETURN AS-IS =====
-  const hasPatientData = text.includes('Demographics:') || 
-                         text.includes('Medical History:') ||
-                         text.includes('MRN') ||
-                         text.includes('Patient Selected:');
+function formatSOAPNote(text) {
+  // ===== EXTRACT ALL SOAP NOTES =====
+  // Parse the text to extract individual SOAP notes
+  const noteBlocks = text.split(/---\n/).filter(block => block.trim());
   
-  // If there's no patient data, just return the text
-  if (!hasPatientData) {
-    return text;
-  }
+  let result = '';
+  let headerExtracted = false;
+  let patientName = '';
   
-  // If it says "No patient found", return as-is
-  if (text.includes('No patient found')) {
-    return text;
-  }
-  
-  // ===== EXTRACT PATIENT NAME =====
-  let patientName = 'Patient';
-  
-  let nameMatch = text.match(/Patient Selected:\s*([^\n]+)/);
+  // Extract patient name from first note
+  const nameMatch = text.match(/SOAP Notes for ([^\n]+)/);
   if (nameMatch) {
     patientName = nameMatch[1].trim();
   }
   
-  if (!nameMatch) {
-    nameMatch = text.match(/✓ Patient Selected\s*\n?\s*\*\*?([^*\n]+)\*\*?/);
-    if (nameMatch) {
-      patientName = nameMatch[1].trim();
-    }
-  }
-  
-  patientName = patientName.replace(/\*\*/g, '');
-  
-  // ===== EXTRACT DEMOGRAPHICS =====
-  let mrn = 'N/A', age = 'N/A', gender = 'N/A';
-  
-  const demoMatch = text.match(/Demographics:\s*([^\n]+)/);
-  if (demoMatch) {
-    const parts = demoMatch[1].split('|').map(s => s.trim());
-    parts.forEach(part => {
-      if (part.includes('MRN:')) mrn = part.replace('MRN:', '').trim();
-      if (part.includes('Age:')) age = part.replace('Age:', '').trim();
-      if (part.includes('Gender:')) gender = part.replace('Gender:', '').trim();
-    });
-  }
-  
-  if (mrn === 'N/A' || age === 'N/A') {
-    const metaMatch = text.match(/\*\*?\s*([A-Z0-9]+)\s*[•|]\s*([A-Z])\s*[•|]\s*(\d+)\s*Years?\s*\*\*?/i);
-    if (metaMatch) {
-      mrn = metaMatch[1].trim();
-      gender = metaMatch[2].trim();
-      age = metaMatch[3].trim();
-    }
-  }
-  
-  if (mrn === 'N/A' || age === 'N/A') {
-    const metaMatch = text.match(/([A-Z0-9]+)\s*[•|]\s*([A-Z])\s*[•|]\s*(\d+)\s*Years?/i);
-    if (metaMatch) {
-      mrn = metaMatch[1].trim();
-      gender = metaMatch[2].trim();
-      age = metaMatch[3].trim();
-    }
-  }
-  
-  // ===== EXTRACT MEDICAL HISTORY =====
-  let allergies = 'None', conditions = 'None';
-  const historyMatch = text.match(/Medical History:\s*([^\n]+)/);
-  if (historyMatch) {
-    const historyText = historyMatch[1];
-    const allergyMatch = historyText.match(/Allergies:\s*([^|]+)/);
-    const conditionMatch = historyText.match(/Conditions:\s*([^|]+)/);
-    if (allergyMatch) allergies = allergyMatch[1].trim() || 'None';
-    if (conditionMatch) conditions = conditionMatch[1].trim() || 'None';
-  }
-  
-  // ===== EXTRACT MEDICATIONS =====
-  let medications = [];
-  const medsMatch = text.match(/Current Medications:\s*([^\n]+)/);
-  if (medsMatch) {
-    const medsText = medsMatch[1].trim();
-    if (medsText !== 'None' && medsText !== '') {
-      medications = medsText.split(',').map(m => m.trim()).filter(m => m !== 'None' && m !== '');
-    }
-  }
-  
-  if (medications.length === 0) {
-    const bulletMeds = text.match(/[•●]\s*([^\n]+)/g);
-    if (bulletMeds) {
-      const medKeywords = ['mg', 'tablet', 'capsule', 'injection', 'syrup', 'drop', 'ointment', 'cream'];
-      medications = bulletMeds
-        .map(m => m.replace(/[•●]\s*/, '').trim())
-        .filter(m => medKeywords.some(keyword => m.toLowerCase().includes(keyword)) || m.length < 50);
-    }
-  }
-  
-  // ===== EXTRACT SOAP NOTES =====
-  let soapCount = 0;
-  let soapDate = '';
-  
-  if (text.includes('No SOAP notes') || text.includes('No SOAP notes yet')) {
-    soapCount = 0;
-  } else {
-    const soapSection = text.match(/SOAP Notes?\s*\((\d+)\)/i);
-    if (soapSection) {
-      soapCount = parseInt(soapSection[1]);
-    }
+  // Process each SOAP note
+  noteBlocks.forEach((block, index) => {
+    if (!block.trim()) return;
     
-    if (soapCount === 0) {
-      const soapContent = text.match(/Latest SOAP Note:\s*\n?\s*([^\n]+)/i);
-      if (soapContent && !soapContent[1].includes('No SOAP notes')) {
-        soapCount = 1;
-        const dateMatch = soapContent[1].match(/\d{4}-\d{2}-\d{2}/);
-        if (dateMatch) soapDate = dateMatch[0];
-      }
-    }
-  }
-  
-  // ===== EXTRACT PRESCRIPTIONS =====
-  let prescriptions = [];
-  const noRxMatch = text.match(/No prescriptions yet/i);
-  if (!noRxMatch) {
-    const rxSection = text.match(/Prescriptions?\s*\((\d+)\)/i);
-    if (rxSection) {
-      const rxCount = parseInt(rxSection[1]);
-      const rxLines = text.match(/[•●]\s*([^\n]+)/g);
-      if (rxLines) {
-        const rxKeywords = ['mg', 'tablet', 'capsule', 'injection', 'syrup', 'drop', 'ointment', 'cream'];
-        prescriptions = rxLines
-          .slice(0, rxCount)
-          .map(m => m.replace(/[•●]\s*/, '').trim())
-          .filter(m => rxKeywords.some(keyword => m.toLowerCase().includes(keyword)) || m.length < 50);
-      }
-    }
-  }
-  
-  // ===== EXTRACT APPOINTMENTS =====
-  let appointments = [];
-  
-  if (text.includes('No appointments scheduled') || text.includes('No upcoming appointments')) {
-    appointments = [];
-  } else {
-    const aptSection = text.match(/Appointments?\s*\((\d+)\)/i);
-    if (aptSection) {
-      const aptCount = parseInt(aptSection[1]);
-      const aptLines = text.match(/[•●]\s*([^\n]+)/g);
-      if (aptLines) {
-        appointments = aptLines
-          .slice(0, aptCount)
-          .map(m => m.replace(/[•●]\s*/, '').trim())
-          .filter(m => m.includes('AM') || m.includes('PM') || m.includes('follow-up') || m.includes('review'));
+    // Extract date
+    const dateMatch = block.match(/📅 ([^\n]+)/);
+    let dateStr = 'Unknown Date';
+    if (dateMatch) {
+      const rawDate = dateMatch[1].trim().replace(/\*\*/g, '').trim();
+      try {
+        const date = new Date(rawDate);
+        if (!isNaN(date.getTime())) {
+          dateStr = date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          });
+        } else {
+          dateStr = rawDate;
+        }
+      } catch {
+        dateStr = rawDate;
       }
     }
     
-    if (appointments.length === 0) {
-      const aptLines = text.match(/[•●]\s*([^\n]+(?:AM|PM)[^\n]*)/g);
-      if (aptLines) {
-        appointments = aptLines.map(m => m.replace(/[•●]\s*/, '').trim());
-      }
+    // Extract SOAP sections
+    const subjectiveMatch = block.match(/SUBJECTIVE:\s*([\s\S]*?)(?=OBJECTIVE:|Objective:|$)/i);
+    const objectiveMatch = block.match(/OBJECTIVE:\s*([\s\S]*?)(?=ASSESSMENT:|Assessment:|$)/i);
+    const assessmentMatch = block.match(/ASSESSMENT:\s*([\s\S]*?)(?=PLAN:|Plan:|$)/i);
+    const planMatch = block.match(/PLAN:\s*([\s\S]*?)(?=\n---|$)/i);
+    
+    // Clean ** markers from content
+    const subjective = subjectiveMatch ? subjectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const objective = objectiveMatch ? objectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const assessment = assessmentMatch ? assessmentMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const plan = planMatch ? planMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    
+    // Build the note card
+    result += `
+      <div class="soap-note-premium">
+        <div class="soap-note-date">
+          <span class="soap-note-calendar-icon">📅</span>
+          <span class="soap-note-date-text">${dateStr}</span>
+        </div>
+        <div class="soap-note-body">
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">S</span>
+              <span class="soap-letter-content">${subjective}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">O</span>
+              <span class="soap-letter-content">${objective}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">A</span>
+              <span class="soap-letter-content">${assessment}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">P</span>
+              <span class="soap-letter-content">${formatPlanWithBullets(plan)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add divider between notes (except after the last one)
+    if (index < noteBlocks.length - 1) {
+      result += `<div class="soap-note-divider"></div>`;
     }
+  });
+  
+  // If no notes found, try the old format (single SOAP note)
+  if (!result) {
+    // Fallback to original parsing for single notes
+    const subjectiveMatch = text.match(/SUBJECTIVE:\s*([\s\S]*?)(?=OBJECTIVE:|Objective:|$)/i);
+    const objectiveMatch = text.match(/OBJECTIVE:\s*([\s\S]*?)(?=ASSESSMENT:|Assessment:|$)/i);
+    const assessmentMatch = text.match(/ASSESSMENT:\s*([\s\S]*?)(?=PLAN:|Plan:|$)/i);
+    const planMatch = text.match(/PLAN:\s*([\s\S]*?)(?=\n\s*---|$)/i);
+    
+    const nameMatch = text.match(/SOAP Notes for ([^\n]+)/);
+    if (nameMatch) patientName = nameMatch[1].trim();
+    
+    const dateMatch = text.match(/📅 ([^\n]+)/);
+    let dateStr = 'Unknown Date';
+    if (dateMatch) {
+      const rawDate = dateMatch[1].trim().replace(/\*\*/g, '').trim();
+      try {
+        const date = new Date(rawDate);
+        if (!isNaN(date.getTime())) {
+          dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+      } catch {}
+    }
+    
+    const subjective = subjectiveMatch ? subjectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const objective = objectiveMatch ? objectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const assessment = assessmentMatch ? assessmentMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const plan = planMatch ? planMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    
+    result = `
+      <div class="soap-note-premium">
+        <div class="soap-note-date">
+          <span class="soap-note-calendar-icon">📅</span>
+          <span class="soap-note-date-text">${dateStr}</span>
+        </div>
+        <div class="soap-note-body">
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">S</span>
+              <span class="soap-letter-content">${subjective}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">O</span>
+              <span class="soap-letter-content">${objective}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">A</span>
+              <span class="soap-letter-content">${assessment}</span>
+            </div>
+          </div>
+          <div class="soap-letter-group">
+            <div class="soap-letter-header">
+              <span class="soap-letter">P</span>
+              <span class="soap-letter-content">${formatPlanWithBullets(plan)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
   
-  // ===== EXTRACT IMAGING REPORTS =====
-  let imagingReports = [];
-  const noImgMatch = text.match(/No images analyzed yet/i);
-  if (!noImgMatch) {
-    const imgSection = text.match(/Imaging Reports?\s*\((\d+)\)/i);
-    if (imgSection) {
-      const imgCount = parseInt(imgSection[1]);
-      const imgLines = text.match(/[•●]\s*([^\n]+)/g);
-      if (imgLines) {
-        imagingReports = imgLines
-          .slice(0, imgCount)
-          .map(m => m.replace(/[•●]\s*/, '').trim())
-          .filter(m => m.includes('X-Ray') || m.includes('CT') || m.includes('MRI') || m.includes('Ultrasound'));
-      }
-    }
-  }
-  
-  // ===== BUILD THE PREMIUM CARD =====
-  const allergyList = allergies !== 'None' ? allergies.split(',').map(a => a.trim()).filter(a => a !== '') : [];
-  const conditionList = conditions !== 'None' ? conditions.split(',').map(c => c.trim()).filter(c => c !== '') : [];
-  
-  const medDisplay = medications.slice(0, 2).map(m => `• ${m}`).join('');
-  const medMore = medications.length > 2 ? medications.length - 2 : 0;
-  
-  const rxDisplay = prescriptions.slice(0, 2).map(rx => `• ${rx}`).join('');
-  const rxMore = prescriptions.length > 2 ? prescriptions.length - 2 : 0;
-  
-  const aptDisplay = appointments.slice(0, 2).map(apt => `• ${apt}`).join('');
-  const aptMore = appointments.length > 2 ? appointments.length - 2 : 0;
-  
-  const imgDisplay = imagingReports.slice(0, 2).map(img => `• ${img}`).join('');
-  const imgMore = imagingReports.length > 2 ? imagingReports.length - 2 : 0;
-  
-  let result = `
-    <div class="premium-snapshot-card">
-      <div class="snapshot-intro">
-        I've loaded the patient context. Here's the clinical snapshot for ${patientName}.
+  // Wrap everything in the container
+  return `
+    <div class="soap-notes-container">
+      <div class="soap-notes-header">
+        <span class="soap-notes-header-icon">📝</span>
+        <span class="soap-notes-header-title">SOAP Notes${patientName ? ' for ' + patientName : ''}</span>
       </div>
-      
-      <div class="snapshot-inner-card">
-        
-        <div class="snapshot-status">
-          <span class="status-check">${icons.checkCircle}</span>
-          <span class="status-text">Patient Selected</span>
-        </div>
-        
-        <div class="snapshot-identity">
-          <div class="identity-avatar">
-            <span class="avatar-initial">${patientName.charAt(0)}</span>
-          </div>
-          <div class="identity-info">
-            <div class="identity-name">${patientName}</div>
-            <div class="identity-meta">${mrn} • ${gender} • ${age} Years</div>
-            <div class="identity-since">Patient Since ${new Date().getFullYear() - 1}</div>
-          </div>
-        </div>
-        
-        <div class="snapshot-alerts-row">
-          <div class="alert-card alert-allergy">
-            <div class="alert-icon-wrapper alert-icon-red">
-              <span class="alert-icon">${icons.alertTriangle}</span>
-            </div>
-            <div class="alert-content">
-              <div class="alert-label">Allergies</div>
-              <div class="alert-value">${allergyList.length > 0 ? allergyList.join(', ') : 'None'}</div>
-            </div>
-            <span class="alert-chevron">${icons.chevronRight}</span>
-          </div>
-          <div class="alert-card alert-condition">
-            <div class="alert-icon-wrapper alert-icon-purple">
-              <span class="alert-icon">${icons.heartPulse}</span>
-            </div>
-            <div class="alert-content">
-              <div class="alert-label">Active Conditions</div>
-              <div class="alert-value">${conditionList.length > 0 ? conditionList.join(', ') : 'None'}</div>
-            </div>
-            <span class="alert-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-row">
-          <div class="row-icon green">${icons.pill}</div>
-          <div class="row-content">
-            <div class="row-title">Active Medications (${medications.length})</div>
-            <div class="row-items">${medDisplay}</div>
-          </div>
-          <div class="row-action">
-            ${medMore > 0 ? `<span class="action-text green">+ ${medMore} More</span>` : ''}
-            <span class="action-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-row">
-          <div class="row-icon blue">${icons.fileText}</div>
-          <div class="row-content">
-            <div class="row-title">Active Prescriptions (${prescriptions.length})</div>
-            <div class="row-items">${rxDisplay}</div>
-          </div>
-          <div class="row-action">
-            ${rxMore > 0 ? `<span class="action-text blue">+ ${rxMore} More</span>` : ''}
-            <span class="action-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-row">
-          <div class="row-icon amber">${icons.notebookPen}</div>
-          <div class="row-content">
-            <div class="row-title">SOAP Notes (${soapCount})</div>
-            ${soapCount > 0 ? `
-              <div class="row-subtitle">Latest SOAP Note</div>
-              <div class="row-date">${soapDate || ''}</div>
-            ` : `
-              <div class="row-empty">No SOAP Notes Available</div>
-            `}
-          </div>
-          <div class="row-action">
-            ${soapCount > 0 ? `<span class="action-text amber">View SOAP Notes</span>` : ''}
-            <span class="action-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-row">
-          <div class="row-icon indigo">${icons.scanLine}</div>
-          <div class="row-content">
-            <div class="row-title">Imaging Reports (${imagingReports.length})</div>
-            <div class="row-items">${imgDisplay}</div>
-          </div>
-          <div class="row-action">
-            ${imgMore > 0 ? `<span class="action-text indigo">+ ${imgMore} More Reports</span>` : ''}
-            <span class="action-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-row">
-          <div class="row-icon green">${icons.calendarDays}</div>
-          <div class="row-content">
-            <div class="row-title">Upcoming Appointments (${appointments.length})</div>
-            <div class="row-items">${aptDisplay}</div>
-          </div>
-          <div class="row-action">
-            ${aptMore > 0 ? `<span class="action-text green">+ ${aptMore} More Appointments</span>` : ''}
-            <span class="action-chevron">${icons.chevronRight}</span>
-          </div>
-        </div>
-        
-        <div class="snapshot-cta">
-          <div class="cta-content">
-            <div class="cta-icon">${icons.brain}</div>
-            <div class="cta-info">
-              <div class="cta-title">Analyze & Recommend</div>
-              <div class="cta-desc">Get clinical insights, risk assessment, recommendations, and follow-up guidance.</div>
-            </div>
-          </div>
-          <button class="cta-btn">Analyze Patient</button>
-        </div>
-        
-        <div class="snapshot-footer">
-          ℹ Clinical snapshot based on the latest available data.
-        </div>
-        
-      </div>
+      <div class="soap-notes-divider"></div>
+      ${result}
     </div>
   `;
-  
-  return result;
 }
 
-/**
- * Format remaining content (SOAP, prescriptions, appointments)
- */
-function formatRemainingContent(text) {
-  let result = '';
+// Helper function to format plan with bullet points
+function formatPlanWithBullets(text) {
+  if (!text || text === 'Not documented') return text;
   
-  if (text.includes('SOAP Note') || text.includes('SUBJECTIVE:')) {
-    const soapMatch = text.match(/(📝\s*SOAP Note.*?)(?=\n\s*💊|\n\s*🩻|\n\s*📅|$)/s);
-    if (soapMatch) {
-      result += formatSOAPNote(soapMatch[1]);
-    }
+  // Split by newlines and convert to bullet points if multiple items
+  const lines = text.split('\n').filter(line => line.trim());
+  if (lines.length === 1) return text;
+  
+  // Check if already has bullet points
+  if (lines.some(line => line.trim().startsWith('•') || line.trim().startsWith('-'))) {
+    return lines.map(line => {
+      const clean = line.replace(/^[•\-]\s*/, '').trim();
+      return `<div class="soap-plan-item">• ${clean}</div>`;
+    }).join('');
   }
   
-  if (text.includes('Prescriptions:')) {
-    const rxMatch = text.match(/(💊\s*Prescriptions:.*?)(?=\n\s*🩻|\n\s*📅|$)/s);
-    if (rxMatch) {
-      result += formatPrescription(rxMatch[1]);
-    }
-  }
-  
-  if (text.includes('Appointments:')) {
-    const aptMatch = text.match(/(📅\s*Appointments:.*?)(?=\n\s*✅|$)/s);
-    if (aptMatch) {
-      result += formatAppointment(aptMatch[1]);
-    }
-  }
-  
-  return result;
+  // Convert to bullet points
+  return lines.map(line => 
+    `<div class="soap-plan-item">• ${line.trim()}</div>`
+  ).join('');
 }
 
-/**
- * Format SOAP Note as premium sections
- */
-function formatSOAPNote(text) {
-  const subjectiveMatch = text.match(/SUBJECTIVE:\s*([\s\S]*?)(?=OBJECTIVE:|Objective:|$)/i);
-  const objectiveMatch = text.match(/OBJECTIVE:\s*([\s\S]*?)(?=ASSESSMENT:|Assessment:|$)/i);
-  const assessmentMatch = text.match(/ASSESSMENT:\s*([\s\S]*?)(?=PLAN:|Plan:|$)/i);
-  const planMatch = text.match(/PLAN:\s*([\s\S]*?)(?=\n\s*💊|\n\s*🩻|\n\s*📅|$)/i);
-  
-  let result = `
-    <div class="message-section soap-section-wrapper">
-      <div class="section-header">
-        <span class="section-icon">📋</span>
-        <span class="section-title">SOAP Note</span>
-      </div>
-      <div class="soap-grid">
-  `;
-  
-  if (subjectiveMatch) {
-    result += `
-      <div class="soap-card subjective-card">
-        <div class="soap-card-header">
-          <span class="soap-card-icon">📋</span>
-          <span class="soap-card-label">Subjective</span>
-        </div>
-        <div class="soap-card-content">${subjectiveMatch[1].trim()}</div>
-      </div>
-    `;
-  }
-  
-  if (objectiveMatch) {
-    result += `
-      <div class="soap-card objective-card">
-        <div class="soap-card-header">
-          <span class="soap-card-icon">🔬</span>
-          <span class="soap-card-label">Objective</span>
-        </div>
-        <div class="soap-card-content">${objectiveMatch[1].trim()}</div>
-      </div>
-    `;
-  }
-  
-  if (assessmentMatch) {
-    result += `
-      <div class="soap-card assessment-card">
-        <div class="soap-card-header">
-          <span class="soap-card-icon">🧠</span>
-          <span class="soap-card-label">Assessment</span>
-        </div>
-        <div class="soap-card-content">${assessmentMatch[1].trim()}</div>
-      </div>
-    `;
-  }
-  
-  if (planMatch) {
-    result += `
-      <div class="soap-card plan-card">
-        <div class="soap-card-header">
-          <span class="soap-card-icon">📋</span>
-          <span class="soap-card-label">Plan</span>
-        </div>
-        <div class="soap-card-content">${planMatch[1].trim()}</div>
-      </div>
-    `;
-  }
-  
-  result += `
-      </div>
-    </div>
-  `;
-  
-  return result;
-}
-
-/**
- * Format Prescription as premium card
- */
 function formatPrescription(text) {
+  // Extract patient name
+  const patientMatch = text.match(/Prescription generated for ([^\n]+)/);
+  const patientName = patientMatch ? patientMatch[1].trim() : 'Patient';
+  
+  // Extract prescription details
   const medMatch = text.match(/Medication:\s*([^\n]+)/);
   const dosageMatch = text.match(/Dosage:\s*([^\n]+)/);
   const frequencyMatch = text.match(/Frequency:\s*([^\n]+)/);
   const durationMatch = text.match(/Duration:\s*([^\n]+)/);
+  const routeMatch = text.match(/Route:\s*([^\n]+)/);
   const instructionsMatch = text.match(/Instructions:\s*([^\n]+)/);
   
-  let result = `
-    <div class="message-section prescription-section">
-      <div class="section-header">
-        <span class="section-icon">💊</span>
-        <span class="section-title">Prescription</span>
-      </div>
-      <div class="prescription-card">
-  `;
+  // Lucide Icons as SVG (compact)
+  const icons = {
+    fileRx: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+    pill: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 0-7l2-2a4.95 4.95 0 0 1 7 0l7 7a4.95 4.95 0 0 1 0 7l-2 2a4.95 4.95 0 0 1-7 0Z"/><path d="m8.5 8.5 7 7"/></svg>`,
+    ruler: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 2.5 21.5"/><path d="M15 8.5 8.5 15"/><path d="M19 12.5 12.5 19"/><path d="M10 6.5 6.5 10"/><path d="M16 4.5 4.5 16"/></svg>`,
+    clock: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+    check: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+    route: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18"/><path d="M7 4v16"/><path d="M17 4v16"/><path d="M3 20h18"/><line x1="12" y1="9" x2="12" y2="15"/></svg>`
+  };
   
-  if (medMatch) {
-    result += `
-      <div class="prescription-row">
-        <span class="prescription-label">Medication</span>
-        <span class="prescription-value">${medMatch[1].trim()}</span>
-      </div>
-    `;
-  }
+  // Build compact rows
+  let rows = '';
   
-  if (dosageMatch) {
-    result += `
-      <div class="prescription-row">
-        <span class="prescription-label">Dosage</span>
-        <span class="prescription-value dosage-pill">${dosageMatch[1].trim()}</span>
-      </div>
-    `;
-  }
+  const rowData = [
+    { match: medMatch, label: 'Medication', icon: icons.pill, iconClass: 'blue', value: medMatch ? medMatch[1].trim().replace(/\\*\\*/g, '').replace(/\\*/g, '').trim() : '' },
+    { match: dosageMatch, label: 'Dosage', icon: icons.ruler, iconClass: 'purple', value: dosageMatch ? dosageMatch[1].trim().replace(/\\*\\*/g, '').replace(/\\*/g, '').trim() : '' },
+    { match: frequencyMatch, label: 'Frequency', icon: icons.clock, iconClass: 'teal', value: frequencyMatch ? frequencyMatch[1].trim().replace(/\\*\\*/g, '').replace(/\\*/g, '').trim() : '' },
+    { match: durationMatch, label: 'Duration', icon: icons.calendar, iconClass: 'green', value: durationMatch ? durationMatch[1].trim().replace(/\\*\\*/g, '').replace(/\\*/g, '').trim() : '' },
+    { match: routeMatch, label: 'Route', icon: icons.route, iconClass: 'orange', value: routeMatch ? routeMatch[1].trim().replace(/\\*\\*/g, '').replace(/\\*/g, '').trim() : '' }
+  ];
   
-  if (frequencyMatch) {
-    result += `
-      <div class="prescription-row">
-        <span class="prescription-label">Frequency</span>
-        <span class="prescription-value">${frequencyMatch[1].trim()}</span>
-      </div>
-    `;
-  }
+  rowData.forEach(row => {
+    if (row.match) {
+      rows += `
+        <div class="prescription-row-compact">
+          <div class="prescription-row-left-compact">
+            <div class="prescription-row-icon-compact ${row.iconClass}">
+              ${row.icon}
+            </div>
+            <div class="prescription-row-content-compact">
+              <div class="prescription-row-label-compact">${row.label}</div>
+              <div class="prescription-row-value-compact">${row.value}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  });
   
-  if (durationMatch) {
-    result += `
-      <div class="prescription-row">
-        <span class="prescription-label">Duration</span>
-        <span class="prescription-value duration-badge">${durationMatch[1].trim()}</span>
-      </div>
-    `;
-  }
-  
+  // Add instructions if present
   if (instructionsMatch) {
-    result += `
-      <div class="prescription-row instructions-row">
-        <span class="prescription-label">Instructions</span>
-        <span class="prescription-value">${instructionsMatch[1].trim()}</span>
+    rows += `
+      <div class="prescription-row-compact instructions-row-compact">
+        <div class="prescription-row-left-compact">
+          <div class="prescription-row-icon-compact gray">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <div class="prescription-row-content-compact">
+            <div class="prescription-row-label-compact">Instructions</div>
+            <div class="prescription-row-value-compact instructions-value-compact">${instructionsMatch[1].trim()}</div>
+          </div>
+        </div>
       </div>
     `;
   }
   
-  result += `
+  // Build the full compact card
+  return `
+    <div class="prescription-card-compact">
+      <div class="prescription-header-compact">
+        <div class="prescription-header-left-compact">
+          <div class="prescription-header-icon-compact">${icons.fileRx}</div>
+          <div>
+            <div class="prescription-header-title-compact">Prescription Details</div>
+            <div class="prescription-header-subtitle-compact">Added to ${patientName}'s record</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="prescription-divider-compact"></div>
+      
+      <div class="prescription-rows-compact">
+        ${rows}
+      </div>
+      
+      <div class="prescription-success-compact">
+        <span class="prescription-success-icon-compact">${icons.check}</span>
+        <span>Saved to ${patientName}'s record</span>
       </div>
     </div>
   `;
-  
-  return result;
 }
 
-/**
- * Format Appointment as premium timeline card
- */
 function formatAppointment(text) {
   const lines = text.split('\n');
   const appointmentLines = lines.filter(line => line.includes('•') || line.includes('scheduled'));
@@ -729,9 +1020,6 @@ function formatAppointment(text) {
   return result;
 }
 
-/**
- * Format Medical Advice as structured sections
- */
 function formatMedicalAdvice(text) {
   let result = `
     <div class="message-section medical-advice-section">
@@ -810,9 +1098,6 @@ function formatMedicalAdvice(text) {
   return result;
 }
 
-/**
- * Format bullet points as structured list items
- */
 function formatBulletPoints(text) {
   let formatted = text;
   
@@ -837,9 +1122,6 @@ function formatBulletPoints(text) {
   return formatted;
 }
 
-/**
- * Format default content with basic enhancements
- */
 function formatDefault(text) {
   let formatted = text;
   
@@ -852,10 +1134,6 @@ function formatDefault(text) {
   
   return formatted;
 }
-
-// ========================================
-// EXPORT UTILITY FUNCTIONS
-// ========================================
 
 export const renderMedicalBadge = (type, text) => {
   const badges = {

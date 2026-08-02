@@ -63,8 +63,14 @@ async def analyze_patient(
     
     # Extract diagnosis from latest SOAP note
     latest_soap = soap_notes[0] if soap_notes else None
-    soap_content = latest_soap.content if latest_soap else {}
-    diagnosis = soap_content.get('assessment', {}).get('diagnosis', '')
+    # SOAPNote has separate fields: subjective, objective, assessment, plan
+    soap_content = {
+                "subjective": latest_soap.subjective if latest_soap else "",
+                "objective": latest_soap.objective if latest_soap else "",
+                "assessment": latest_soap.assessment if latest_soap else "",
+                "plan": latest_soap.plan if latest_soap else ""
+            } if latest_soap else {}
+    diagnosis = soap_content.get('assessment', '') if soap_content else ''
     
     # RAG: Search latest research based on diagnosis
     research_papers = []
@@ -100,10 +106,10 @@ CURRENT MEDICATIONS: {', '.join(patient.medications or [])}
 ALLERGIES: {', '.join(patient.allergies or [])}
 
 LATEST SOAP NOTE:
-Subjective: {soap_content.get('subjective', {}).get('chief_complaint', 'N/A')}
-Objective: {soap_content.get('objective', {}).get('physical_exam', 'N/A')}
-Assessment: {soap_content.get('assessment', {}).get('diagnosis', 'N/A')}
-Plan: {soap_content.get('plan', {}).get('follow_up', 'N/A')}
+Subjective: {soap_content.get('subjective', 'N/A') if soap_content else 'N/A'}
+Objective: {soap_content.get('objective', 'N/A') if soap_content else 'N/A'}
+Assessment: {soap_content.get('assessment', 'N/A') if soap_content else 'N/A'}
+Plan: {soap_content.get('plan', 'N/A') if soap_content else 'N/A'}
 
 ACTIVE PRESCRIPTIONS ({len(prescriptions)}):
 {chr(10).join([f"- {p.content.get('medication', {}).get('name', 'Unknown')} {p.content.get('medication', {}).get('dosage', '')}" for p in prescriptions[:3]]) if prescriptions else 'None'}
