@@ -1382,3 +1382,107 @@
     font-size: 10px;
   }
 }
+
+/* ========================================
+   PRESCRIPTION - PROPORTIONAL SIZES (Base: 13px)
+   ======================================== */
+
+.prescription-section {
+  font-size: 13px !important;
+  padding: 12px 14px !important;
+}
+
+.prescription-section .section-title {
+  font-size: 14px !important;
+}
+
+.prescription-badge {
+  font-size: 9px !important;
+  padding: 1px 8px !important;
+}
+
+.prescription-card {
+  font-size: 13px !important;
+  padding: 10px 12px !important;
+}
+
+.prescription-row {
+  font-size: 13px !important;
+  padding: 4px 0 !important;
+}
+
+.prescription-label {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  min-width: 70px !important;
+}
+
+.prescription-value {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #0f172a !important;
+}
+
+/* Medication and Dosage - same as others */
+.prescription-row:first-child .prescription-value,
+.prescription-row:nth-child(2) .prescription-value {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.dosage-pill {
+  font-size: 13px !important;
+  padding: 0px 8px !important;
+  display: inline-block !important;
+}
+
+.duration-badge {
+  font-size: 13px !important;
+  padding: 0px 8px !important;
+  display: inline-block !important;
+}
+
+.prescription-saved-confirmation {
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+  margin-top: 6px !important;
+  text-align: center !important;
+}
+
+.instructions-row .prescription-value {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: #475569 !important;
+}
+
+/* Override any existing conflicting styles */
+.prescription-section .section-header {
+  margin-bottom: 8px !important;
+}
+
+.prescription-row {
+  display: flex !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  gap: 12px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.prescription-row:last-child {
+  border-bottom: none !important;
+}
+
+.prescription-label {
+  flex-shrink: 0 !important;
+  padding-top: 0 !important;
+}
+
+.prescription-value {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  flex: 1 !important;
+  line-height: 1.4 !important;
+}

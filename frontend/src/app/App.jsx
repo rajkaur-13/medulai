@@ -86,7 +86,7 @@ How can I help you today?`;
   const [mobileTab, setMobileTab] = useState('chat');
   const hasPatientSelected = currentPatient !== null;
 
-  // ===== Expose for clickable patient names and example pills =====
+  // ===== Expose for clickable patient names, sections, and analyze =====
   useEffect(() => {
     window.directSelectPatient = handleDirectPatientSelect;
     window.directSetInput = (text) => {
@@ -97,7 +97,93 @@ How can I help you today?`;
         if (inputElement) inputElement.focus();
       }, 50);
     };
-  }, [handleDirectPatientSelect, setInput]);
+    
+    // ✅ Handle section view clicks from patient card
+    window.viewSection = (section, patientName) => {
+      console.log(`📊 Viewing ${section} for ${patientName}`);
+      
+      let message = '';
+      switch(section) {
+        case 'medications':
+          message = `Show me medications for ${patientName}`;
+          break;
+        case 'prescriptions':
+          message = `Show me prescriptions for ${patientName}`;
+          break;
+        case 'soap':
+          message = `Show me SOAP notes for ${patientName}`;
+          break;
+        case 'imaging':
+          message = `Show me imaging reports for ${patientName}`;
+          break;
+        case 'appointments':
+          message = `Show me appointments for ${patientName}`;
+          break;
+        default:
+          message = `Show me ${section} for ${patientName}`;
+      }
+      
+      console.log(`📤 Sending message: ${message}`);
+      sendChatMessage(message, token, currentPatient, setCurrentPatient, setPatientCache, setAllPatientNames, allPatientNames);
+    };
+    
+    // ✅ Handle analyze patient clicks from patient card
+    window.analyzePatient = async (patientName) => {
+      console.log(`🔍 Analyzing patient: ${patientName}`);
+      
+      // Find the patient in the patients list
+      const patient = patients.find(p => p.name === patientName);
+      if (!patient) {
+        console.error('❌ Patient not found:', patientName);
+        return;
+      }
+      
+      try {
+        // Call the analyze API directly (same as Clinical Panel)
+        const result = await api.analyzePatient(token, patient.id);
+        console.log('📥 Analysis result:', result);
+        
+        // Use handleAnalysisComplete to display in chat
+        if (result && result.formatted_response) {
+          const formatMessage = (text) => {
+            if (!text) return '';
+            let formatted = text.replace(/\n/g, '<br/>');
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            return formatted;
+          };
+          const formattedMessage = formatMessage(result.formatted_response);
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            text: formattedMessage, 
+            isUser: false, 
+            timestamp: new Date() 
+          }]);
+        } else if (result && result.reply) {
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            text: result.reply, 
+            isUser: false, 
+            timestamp: new Date() 
+          }]);
+        } else {
+          setMessages(prev => [...prev, { 
+            id: Date.now().toString(), 
+            text: '✅ Analysis completed for ' + patientName, 
+            isUser: false, 
+            timestamp: new Date() 
+          }]);
+        }
+      } catch (error) {
+        console.error('❌ Analysis failed:', error);
+        setMessages(prev => [...prev, { 
+          id: Date.now().toString(), 
+          text: '❌ Failed to analyze patient: ' + error.message, 
+          isUser: false, 
+          timestamp: new Date() 
+        }]);
+      }
+    };
+  }, [handleDirectPatientSelect, setInput, sendChatMessage, token, currentPatient, setCurrentPatient, setPatientCache, setAllPatientNames, allPatientNames, patients, setMessages, api]);
 
   // ===== AUTO-LOAD PATIENT INTO CHAT WHEN SELECTED =====
   useEffect(() => {
