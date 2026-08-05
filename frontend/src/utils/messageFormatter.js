@@ -1523,9 +1523,9 @@ export const formatStructuredImagingReport = (data) => {
       </div>
 
       <!-- FOOTER -->
-      <div style="padding:8px 16px;background:#F8FAFC;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:8px;color:#94A3B8;">${iconCheckCircle} Report generated from structured data</span>
-        <span style="font-size:8px;color:#94A3B8;">${iconRefreshCw} Updates on re-generation</span>
+      <div style="padding:8px 16px;background:#F8FAFC;border-top:1px solid #9CA3AF;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:9px;color:#64748B;cursor:pointer;">← Previous Report</span>
+        <span style="font-size:9px;color:#64748B;cursor:pointer;">Next Report →</span>
       </div>
     </div>
   `;
