@@ -187,6 +187,8 @@ export const api = {
       })
     });
     const data = await response.json();
+    console.log('🔍 FULL API RESPONSE:', data);  //for debugging
+    console.log('🔍 RECOMMENDATIONS:', data.recommendations);  // ← for debugging ADD THIS
     if (!response.ok) throw new Error(data.detail || 'Analysis failed');
     return data;
   },
