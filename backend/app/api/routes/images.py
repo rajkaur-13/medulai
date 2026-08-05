@@ -4,14 +4,15 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+import re
 from ...db.database import get_db
 from ...api.dependencies.auth import get_current_user
 from ...services.b2_storage import b2_storage
 from ...services.vision_service import vision_service
+from ...services.vision_service import analyze_medical_image
+from ...models.image import Image 
 from ...models.patient import Patient
-from ...models.image import Image
 from ...tools.image_tools import (
-    analyze_medical_image,
     save_image_analysis,
     update_image_analysis,
     get_patient_images,
@@ -327,7 +328,7 @@ async def analyze_uploaded_image(
             "image_type": image_type,
             "display_name": display_name,
             "analysis": result,
-            "summary": f"🔍 {display_name} Analysis: {result['findings']}\n\n📊 Confidence: {result['confidence']*100:.1f}%\n\n💡 Recommendation: {result['recommendation']}"
+            "summary": f"🔍 {display_name} Analysis: {result['findings']}\n\n📊 Confidence: {result['confidence']*100:.1f}%\n\n💡 Recommendations: {result['recommendations']}"
         }
     else:
         raise HTTPException(status_code=500, detail=result.get("error", "Analysis failed"))
@@ -361,6 +362,9 @@ async def analyze_image_json(
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
         
+        # Get patient
+        patient = db.query(Patient).filter(Patient.id == image.patient_id).first()
+        
         # Get image data from multiple sources
         image_base64 = None
         b2_key = None
@@ -372,7 +376,6 @@ async def analyze_image_json(
         
         # 2. Try to get b2_key from analysis_history
         if not image_base64:
-            patient = db.query(Patient).filter(Patient.id == image.patient_id).first()
             if patient and patient.analysis_history:
                 for entry in patient.analysis_history:
                     if entry.get("image_id") == str(image.id):
@@ -393,46 +396,154 @@ async def analyze_image_json(
         if not image_base64:
             raise HTTPException(status_code=404, detail="No image data found")
         
-        # Analyze using Gemini
+        # ✅ ANALYZE using Gemini (returns JSON from vision_service.py)
         result = analyze_medical_image(image_base64, image_type)
         
-        if result.get("success"):
-            # ✅ Save to separate columns
-            image.findings = result.get("findings", "")
-            image.impression = result.get("impression", "")
-            image.doctor_notes = result.get("recommendation", "")
-            image.analysis = result.get("full_analysis", result.get("findings", ""))
-            image.confidence = result.get("confidence", 0.0)
-            db.commit()
-            
-            # Also update analysis_history
-            if patient and patient.analysis_history:
-                for entry in patient.analysis_history:
-                    if entry.get("image_id") == str(image.id):
-                        entry["findings"] = result.get("findings", "")
-                        entry["impression"] = result.get("impression", "")
-                        entry["doctor_notes"] = result.get("recommendation", "")
-                        entry["confidence"] = result.get("confidence", 0.0)
-                        db.commit()
-                        break
-            
-            return {
-                "success": True,
-                "findings": result.get("findings", ""),
-                "impression": result.get("impression", ""),
-                "recommendation": result.get("recommendation", ""),
-                "confidence": result.get("confidence", 0),
-                "urgency": result.get("urgency", "Low"),
-                "image_id": str(image.id)
-            }
-        else:
+        if not result.get("success"):
             raise HTTPException(status_code=500, detail=result.get("error", "Analysis failed"))
+        
+        # ============================================================
+        # ✅ STEP 1: Use JSON data directly (NO REGEX NEEDED!)
+        # ============================================================
+        if result.get("parsed_with") == "json":
+            print("✅ Using clean JSON data from AI")
+            
+            # ✅ Direct extraction - NO REGEX!
+            findings = result.get("findings", "No findings documented")
+            impression = result.get("impression", "Not documented")
+            recommendations = result.get("recommendations", "No recommendations provided")
+            confidence = result.get("confidence", 0.7)
+            urgency = result.get("urgency", "Low")
+            analysis_text = result.get("full_analysis", "")
+            
+            # ✅ Clean up - just strip whitespace (no regex needed)
+            findings = findings.strip()
+            impression = impression.strip()
+            recommendations = recommendations.strip()
+            
+        # ============================================================
+        # ⚠️ STEP 2: Fallback to regex (ONLY if JSON fails)
+        # ============================================================
+        else:
+            print("⚠️ JSON parsing failed, using regex fallback")
+            analysis_text = result.get("full_analysis", result.get("findings", ""))
+            
+            # ⚠️ Keep regex ONLY for fallback
+            # Extract FINDINGS
+            findings_match = re.search(r'###\s*1\.\s*FINDINGS[:\s]*([\s\S]*?)(?=###\s*2\.\s*IMPRESSION|$)', analysis_text, re.IGNORECASE)
+            findings = findings_match[1].strip() if findings_match else result.get("findings", "")
+            
+            # Extract IMPRESSION
+            impression_match = re.search(r'###\s*2\.\s*IMPRESSION[:\s]*([\s\S]*?)(?=###\s*3\.\s*RECOMMENDATIONS|$)', analysis_text, re.IGNORECASE)
+            impression = impression_match[1].strip() if impression_match else result.get("impression", "")
+            
+            # Extract RECOMMENDATIONS
+            rec_match = re.search(r'###\s*3\.\s*RECOMMENDATIONS[:\s]*([\s\S]*?)(?=###\s*4\.\s*CONFIDENCE|$)', analysis_text, re.IGNORECASE)
+            recommendations = rec_match[1].strip() if rec_match else result.get("recommendations", "")
+            
+            # Extract CONFIDENCE
+            conf_match = re.search(r'CONFIDENCE[:\s]*\*?\s*([\d]+)%', analysis_text, re.IGNORECASE)
+            confidence = int(conf_match[1]) / 100 if conf_match else result.get("confidence", 0.7)
+            
+            # Extract URGENCY
+            urgency_match = re.search(r'URGENCY[:\s]*\*?\s*([\w]+)', analysis_text, re.IGNORECASE)
+            urgency = urgency_match[1].strip() if urgency_match else result.get("urgency", "Low")
+            
+            # Clean up markdown (only in fallback)
+            findings = re.sub(r'###\s*\d+\.\s*[A-Z]+:?', '', findings)
+            findings = re.sub(r'\*\*', '', findings)
+            findings = re.sub(r'\*\s*', '', findings)
+            findings = findings.strip()
+            
+            impression = re.sub(r'###\s*\d+\.\s*[A-Z]+:?', '', impression)
+            impression = re.sub(r'\*\*', '', impression)
+            impression = re.sub(r'\*\s*', '', impression)
+            impression = impression.strip()
+            
+            recommendations = re.sub(r'###\s*\d+\.\s*[A-Z]+:?', '', recommendations)
+            recommendations = re.sub(r'\*\*', '', recommendations)
+            recommendations = re.sub(r'\*\s*', '', recommendations)
+            recommendations = recommendations.strip()
+        
+        # ============================================================
+        # ✅ STEP 3: Save to database (SAME as before)
+        # ============================================================
+        image.findings = findings
+        image.impression = impression
+        image.recommendations = recommendations
+        image.doctor_notes = ""  # Leave empty for doctor to add notes
+        image.analysis = analysis_text  # Keep raw for reference
+        image.confidence = confidence
+        db.commit()
+        
+        # Also update analysis_history
+        if patient and patient.analysis_history:
+            for entry in patient.analysis_history:
+                if entry.get("image_id") == str(image.id):
+                    entry["findings"] = image.findings
+                    entry["impression"] = image.impression
+                    entry["recommendations"] = image.recommendations
+                    entry["doctor_notes"] = image.doctor_notes
+                    entry["confidence"] = float(confidence)
+                    entry["urgency"] = urgency
+                    db.commit()
+                    break
+        
+        # ============================================================
+        # ✅ STEP 4: Return clean response
+        # ============================================================
+        return {
+            "success": True,
+            "findings": image.findings,
+            "impression": image.impression,
+            "recommendations": image.recommendations,
+            "confidence": confidence,
+            "urgency": urgency,
+            "image_id": str(image.id),
+            "parsed_with": result.get("parsed_with", "unknown")
+        }
             
     except Exception as e:
         print(f"❌ Analyze error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 # ========== SAVE REPORT ==========
+
+
+@router.get("/patient/{patient_id}")
+async def get_patient_images(
+    patient_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get all images for a patient"""
+    from uuid import UUID
+    try:
+        images = db.query(Image).filter(
+            Image.patient_id == UUID(patient_id)
+        ).order_by(Image.uploaded_at.desc()).all()
+        
+        return {
+            "images": [
+                {
+                    "id": str(img.id),
+                    "image_type": img.image_type,
+                    "filename": img.filename,
+                    "uploaded_at": img.uploaded_at.isoformat() if img.uploaded_at else None,
+                    "findings": img.findings or img.analysis,
+                    "impression": img.impression,
+                    "recommendations": img.recommendations,
+                    "doctor_notes": img.doctor_notes,
+                    "confidence": img.confidence,
+                    "status": "analyzed" if img.analysis else "pending"
+                }
+                for img in images
+            ]
+        }
+    except Exception as e:
+        print(f"Error fetching patient images: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/save-report")
 async def save_imaging_report(
@@ -445,6 +556,7 @@ async def save_imaging_report(
         image_id = request.get("studyId") or request.get("image_id")
         findings = request.get("findings", "")
         impression = request.get("impression", "")
+        recommendations = request.get("recommendations", "")  # ← ADD THIS!
         doctor_notes = request.get("doctorNotes", "")
         
         if not image_id:
@@ -458,8 +570,9 @@ async def save_imaging_report(
         # ✅ Save to separate columns
         image.findings = findings
         image.impression = impression
+        image.recommendations = recommendations  # ← ADD THIS!
         image.doctor_notes = doctor_notes
-        image.analysis = f"FINDINGS:\n{findings}\n\nIMPRESSION:\n{impression}\n\nDOCTOR NOTES:\n{doctor_notes}"
+        image.analysis = f"FINDINGS:\n{findings}\n\nIMPRESSION:\n{impression}\n\nRECOMMENDATIONS:\n{recommendations}\n\nDOCTOR NOTES:\n{doctor_notes}"  # ← ADD THIS!
         db.commit()
         
         # Also update analysis_history
@@ -469,6 +582,7 @@ async def save_imaging_report(
                 if entry.get("image_id") == str(image.id):
                     entry["findings"] = findings
                     entry["impression"] = impression
+                    entry["recommendations"] = recommendations  # ← ADD THIS!
                     entry["doctor_notes"] = doctor_notes
                     db.commit()
                     break
@@ -551,6 +665,7 @@ async def get_patient_images_signed(
                 "analysis": img.analysis,
                 "findings": img.findings,
                 "impression": img.impression,
+                "recommendations": img.recommendations, 
                 "doctor_notes": img.doctor_notes,
                 "confidence": img.confidence,
                 "uploaded_at": img.uploaded_at.isoformat() if img.uploaded_at else None

@@ -3,26 +3,80 @@
 // Complete rewrite with Lucide icons & structured content
 // ========================================
 
-/**
- * Format medical messages with structured sections, badges, and premium styling
- * All information is preserved - only presentation changes
- */
 export const formatMedicalMessage = (text, isUser = false) => {
+  
+  // ✅ STEP 1: User messages
   if (isUser) {
-    // User messages - just escape and return
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
   
-  // ✅ FIX: If message already contains HTML, return it as-is
+  // ✅ STEP 2: If already HTML, return as-is
   if (text.includes('<br/>') || text.includes('<strong>') || text.includes('<div')) {
     return text;
   }
   
+  // ✅ STEP 3: TRY JSON FIRST (NEW - NO REGEX!)
+  try {
+    // Check if text looks like JSON
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      const data = JSON.parse(trimmed);
+      
+      // Check if it's an imaging report
+      if (data.type === 'imaging_report' || data.findings || data.impression) {
+        console.log('✅ Using JSON data for imaging report');
+        return formatStructuredImagingReport(data);
+      }
+      
+      // Check if it's patient data
+      if (data.type === 'patient_selected' || data.name) {
+        console.log('✅ Using JSON data for patient selection');
+        // Convert JSON to the format your existing function expects
+        const textFormat = `Patient Selected: ${data.name}\nDemographics: MRN: ${data.mrn || 'N/A'} | Age: ${data.age || 'N/A'} | Gender: ${data.gender || 'N/A'}\nMedical History: Allergies: ${data.allergies || 'None'} | Conditions: ${data.conditions || 'None'}\nCurrent Medications: ${(data.medications || []).join(', ') || 'None'}`;
+        return formatPatientSelected(textFormat);
+      }
+      
+      // Check if it's a SOAP note
+      if (data.type === 'soap_note' || data.subjective) {
+        console.log('✅ Using JSON data for SOAP note');
+        // Convert JSON to format your existing function expects
+        const textFormat = `SOAP Notes for ${data.patientName || 'Patient'}\n📅 ${data.date || 'Unknown Date'}\n---\nSUBJECTIVE:\n${data.subjective || 'Not documented'}\n\nOBJECTIVE:\n${data.objective || 'Not documented'}\n\nASSESSMENT:\n${data.assessment || 'Not documented'}\n\nPLAN:\n${data.plan || 'Not documented'}`;
+        return formatSOAPNote(textFormat);
+      }
+      
+      // Check if it's a prescription
+      if (data.type === 'prescription' || data.medication) {
+        console.log('✅ Using JSON data for prescription');
+        // Convert JSON to format your existing function expects
+        const textFormat = `Prescription generated for ${data.patientName || 'Patient'}\nMedication: ${data.medication || 'Unknown'}\nDosage: ${data.dosage || 'N/A'}\nFrequency: ${data.frequency || 'N/A'}\nDuration: ${data.duration || 'N/A'}\nRoute: ${data.route || 'Oral'}\nInstructions: ${data.instructions || ''}`;
+        return formatPrescription(textFormat);
+      }
+    }
+  } catch (e) {
+    // Not JSON, continue to regex fallback
+    console.log('📝 Not JSON, using regex fallback');
+  }
+  
+  // ===== STEP 4: FALLBACK - Original regex parsing (for backward compatibility) =====
+  // 🩻🩻🩻 IMAGING CHECK (only if not JSON)
+  if (text.includes('Imaging Reports for') || text.includes('🩻 Imaging Reports for') || text.includes('🩻 Imaging Report -')) {
+    console.log('🩻 IMAGING DETECTED - using regex formatter');
+    try {
+      const data = extractImagingData(text);
+      if (data) {
+        return formatStructuredImagingReport(data);
+      }
+    } catch (e) {
+      console.log("⚠️ Could not parse as structured data");
+    }
+    return formatStructuredImagingReport({ patientName: 'Unknown', imageType: 'Unknown', date: '', findings: 'No findings documented', impression: 'Not documented', recommendations: 'No recommendations provided', doctorNotes: 'No doctor notes added', confidence: '' });
+  }
+  
   let formatted = text;
   
-  // ===== STEP 1: DETECT CONTENT TYPE =====
+  // ===== STEP 5: DETECT CONTENT TYPE =====
   const isPatientList = formatted.includes('Found') && formatted.includes('patients in your clinic');
   const isPatientSelected = formatted.includes('Patient Selected:') || formatted.includes('✓ Patient Selected') || formatted.includes('Patient Summary:');
   const isSOAPNote = formatted.includes('SUBJECTIVE:') || formatted.includes('SUBJECTIVE') || formatted.includes('Objective:') || formatted.includes('SOAPNote') || formatted.includes('SOAP Notes for');
@@ -30,63 +84,160 @@ export const formatMedicalMessage = (text, isUser = false) => {
                          (formatted.includes('Medication:') && formatted.includes('Dosage:'));
   const isAppointment = formatted.includes('Appointment') && formatted.includes('scheduled');
   const isMedicalAdvice = formatted.includes('Diagnosis') || formatted.includes('Treatment') || formatted.includes('Red Flags');
-  
-  // ✅ NEW: Detect section view responses
-  const isSectionView = formatted.includes('Active Medications for') || 
+  const isSectionView = formatted.includes('Imaging Reports for') ||
+                        formatted.includes('Active Medications for') || 
                         formatted.includes('Active Prescriptions for') ||
                         formatted.includes('All Prescriptions for') ||
-                        formatted.includes('All Prescriptions for') ||
-                        formatted.includes('Imaging Reports for') ||
                         formatted.includes('Upcoming Appointments for') ||
                         formatted.includes('No active medications') ||
                         formatted.includes('No active prescriptions') ||
                         formatted.includes('No imaging reports found') ||
                         formatted.includes('No upcoming appointments');
   
-  // ===== STEP 2: PATIENT LIST =====
+  // ===== STEP 6: PATIENT LIST =====
   if (isPatientList) {
     return formatPatientList(formatted);
   }
   
-  // ===== STEP 3: PRESCRIPTION =====
+  // ===== STEP 7: PRESCRIPTION =====
   if (isPrescription) {
     return formatPrescription(formatted);
   }
   
-  // ===== STEP 4: PATIENT SELECTED =====
+  // ===== STEP 8: SECTION VIEW =====
+  if (isSectionView) {
+    console.log('🔍 SECTION VIEW DETECTED:', formatted.substring(0, 50));
+    return formatSectionView(formatted);
+  }
+  
+  // ===== STEP 9: PATIENT SELECTED =====
   if (isPatientSelected) {
     return formatPatientSelected(text);
   }
   
-  // ===== STEP 5: SECTION VIEW (NEW) =====
-  if (isSectionView) {
-    return formatSectionView(formatted);
-  }
-  
-  // ===== STEP 6: SOAP NOTE =====
+  // ===== STEP 10: SOAP NOTE =====
   if (isSOAPNote) {
     return formatSOAPNote(formatted);
   }
   
-  // ===== STEP 7: APPOINTMENT =====
+  // ===== STEP 11: APPOINTMENT =====
   if (isAppointment) {
     return formatAppointment(formatted);
   }
   
-  // ===== STEP 8: MEDICAL ADVICE =====
+  // ===== STEP 12: MEDICAL ADVICE =====
   if (isMedicalAdvice) {
     return formatMedicalAdvice(formatted);
   }
   
-  // ===== STEP 8: DEFAULT =====
+  // ===== STEP 13: DEFAULT =====
   return formatDefault(formatted);
 };
+
+// ========================================
+// Helper function to extract data from structured imaging report
+// ========================================
+
+function extractImagingData(text) {
+  try {
+    console.log('🔍 Extracting imaging data from report...');
+    
+    // Extract patient name
+    const nameMatch = text.match(/🩻 Imaging Report - ([^\n<]+)/);
+    const patientName = nameMatch ? nameMatch[1].trim() : '';
+    
+    // Extract image type
+    const typeMatch = text.match(/<div style="font-size:10px;color:#64748B;">([^•]+)/);
+    const imageType = typeMatch ? typeMatch[1].trim().replace(/•/g, '').trim() : '';
+    
+    // Extract date
+    const dateMatches = text.match(/\d{4}-\d{2}-\d{2}/g);
+    const date = dateMatches ? dateMatches[0] : '';
+    
+    // Extract confidence
+    const confMatch = text.match(/✅ (\d+)%/);
+    const confidence = confMatch ? confMatch[1] : '';
+    
+    // Extract each section individually
+    const extractSection = (sectionTitle, icon) => {
+      // Find the section header with the icon
+      const headerPattern = new RegExp(`${icon}\\s*${sectionTitle}`, 'i');
+      const headerMatch = text.match(headerPattern);
+      if (!headerMatch) {
+        return '';
+      }
+      
+      const startPos = headerMatch.index + headerMatch[0].length;
+      
+      // Find the next section header
+      const nextIcons = ['🔍', '💡', '📋', '📝'];
+      let endPos = text.length;
+      for (const nextIcon of nextIcons) {
+        const nextPos = text.indexOf(nextIcon, startPos);
+        if (nextPos !== -1 && nextPos < endPos && nextPos > startPos) {
+          endPos = nextPos;
+        }
+      }
+      
+      // Extract content between start and end
+      let content = text.substring(startPos, endPos)
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/•/g, '')
+        .replace(/✎ Edit/g, '')
+        .trim();
+      
+      // Remove the section title if it appears
+      content = content.replace(new RegExp(`^${sectionTitle}`, 'i'), '').trim();
+      content = content.replace(new RegExp(`^${icon}\\s*${sectionTitle}`, 'i'), '').trim();
+      
+      // If content is placeholder, return empty
+      if (content.includes('No findings documented') ||
+          content.includes('Not documented') ||
+          content.includes('No recommendations provided') ||
+          content.includes('No doctor notes added')) {
+        return '';
+      }
+      
+      return content;
+    };
+    
+    // Extract each section with the correct icon
+    const findings = extractSection('Findings', '🔍');
+    const impression = extractSection('Impression', '💡');
+    const recommendations = extractSection('Recommendations', '📋');
+    const doctorNotes = extractSection('Doctor Notes', '📝');
+    
+    console.log('✅ Extracted - Findings:', !!findings);
+    console.log('✅ Extracted - Impression:', !!impression);
+    console.log('✅ Extracted - Recommendations:', !!recommendations);
+    console.log('✅ Extracted - Doctor Notes:', !!doctorNotes);
+    
+    return {
+      patientName: patientName || 'Unknown',
+      imageType: imageType || 'Unknown',
+      date: date || '',
+      findings: findings || 'No findings documented',
+      impression: impression || 'Not documented',
+      recommendations: recommendations || 'No recommendations provided',
+      doctorNotes: doctorNotes || 'No doctor notes added',
+      confidence: confidence || '',
+      imageId: 'unknown'
+    };
+  } catch (e) {
+    console.error('Error extracting imaging data:', e);
+    return null;
+  }
+}
 
 // ========================================
 // ICON HELPERS
 // ========================================
 
 const icons = {
+  
+  search: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+
   alertTriangle: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`,
   
   heartPulse: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5H21"/></svg>`,
@@ -406,23 +557,114 @@ window.analyzePatient = function(patientName) {
   });
   window.dispatchEvent(event);
 };
+// ========================================
+// FALLBACK: Format imaging report from raw text
+// ========================================
 
+function formatImagingReportFromText(text) {
+  console.log('🔄 Parsing imaging report from raw text');
+  
+  // Extract patient name
+  let patientName = 'Unknown';
+  let imageType = 'Unknown';
+  let date = '';
+  let findings = '';
+  let impression = '';
+  let recommendations = '';
+  let doctorNotes = '';
+  let confidence = '';
+  
+  const lines = text.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (trimmed.includes('Imaging Reports for')) {
+      patientName = trimmed.replace('🩻 Imaging Reports for', '').trim();
+    } else if (trimmed.includes('📅')) {
+      date = trimmed.replace('📅', '').trim();
+    } else if (trimmed.includes('🖼️')) {
+      imageType = trimmed.replace('🖼️', '').trim();
+    } else if (trimmed.startsWith('Findings:')) {
+      findings = trimmed.replace('Findings:', '').trim();
+    } else if (trimmed.startsWith('Impression:')) {
+      impression = trimmed.replace('Impression:', '').trim();
+    } else if (trimmed.startsWith('Recommendations:')) {
+      recommendations = trimmed.replace('Recommendations:', '').trim();
+    } else if (trimmed.startsWith('Confidence:')) {
+      confidence = trimmed.replace('Confidence:', '').trim().replace('%', '');
+    } else if (trimmed.startsWith('Doctor Notes:') || trimmed.startsWith('Notes:')) {
+      doctorNotes = trimmed.replace('Doctor Notes:', '').replace('Notes:', '').trim();
+    }
+  }
+  
+  // If we found ANY data, format it
+  if (findings || impression || recommendations || doctorNotes) {
+    console.log('✅ Extracted from raw text - Findings:', !!findings);
+    console.log('✅ Extracted from raw text - Impression:', !!impression);
+    console.log('✅ Extracted from raw text - Recommendations:', !!recommendations);
+    
+    return formatStructuredImagingReport({
+      patientName: patientName || 'Unknown',
+      imageType: imageType || 'Unknown',
+      date: date || '',
+      findings: findings || 'No findings documented',
+      impression: impression || 'Not documented',
+      recommendations: recommendations || 'No recommendations provided',
+      doctorNotes: doctorNotes || 'No doctor notes added',
+      confidence: confidence || ''
+    });
+  }
+  
+  // If still no data, return the fallback
+  console.log('❌ No data found in raw text, using fallback');
+  return formatStructuredImagingReport({
+    patientName: 'Unknown',
+    imageType: 'Unknown',
+    date: '',
+    findings: 'No findings documented',
+    impression: 'Not documented',
+    recommendations: 'No recommendations provided',
+    doctorNotes: 'No doctor notes added',
+    confidence: ''
+  });
+}
 // ========================================
 // OTHER FORMATTERS (unchanged)
 // ========================================
 
 function formatSectionView(text) {
-  // Format section view responses
   // Check if this is a prescriptions response
   const isPrescriptions = text.includes('All Prescriptions for') || text.includes('Active Prescriptions for');
+  // Check if this is an imaging response
+  const isImaging = text.includes('Imaging Reports for') || text.includes('🩻 Imaging Reports for') || text.includes('🩻 Imaging Report -');
   
   console.log('🔍 formatSectionView called');
   console.log('🔍 isPrescriptions:', isPrescriptions);
+  console.log('🔍 isImaging:', isImaging);
   console.log('🔍 text starts with:', text.substring(0, 50));
   
   if (isPrescriptions) {
     console.log('🔍 Calling formatPrescriptionsGrouped');
     return formatPrescriptionsGrouped(text);
+  }
+  
+  if (isImaging) {
+    console.log('🔍 Calling formatStructuredImagingReport');
+    try {
+      // ✅ Try to extract the data from the text
+      const data = extractImagingData(text);
+      if (data && data.findings && data.findings !== 'No findings documented') {
+        console.log('✅ Data extracted successfully');
+        return formatStructuredImagingReport(data);
+      }
+    } catch (e) {
+      console.log("⚠️ Could not parse as structured data:", e);
+    }
+    
+    // ✅ Fallback: Try to parse the text directly
+    console.log('🔄 Using fallback: extracting from raw text');
+    return formatImagingReportFromText(text);
   }
   
   // Default formatting for other section views
@@ -625,65 +867,6 @@ function formatPrescriptionsGrouped(text) {
   return "<div class=\"prescriptions-premium-container\">" + display + "</div>";
 }
 
-function formatPatientList(text) {
-  const lines = text.split('\n');
-  const patientLines = lines.filter(line => line.includes('•') || line.includes('MRN'));
-  const count = patientLines.length;
-  
-  let result = `
-    <div class="patient-list-wrapper">
-      <div class="patient-list-header">
-        <span class="patient-list-icon">👥</span>
-        <span class="patient-list-title">Recent Patients</span>
-      </div>
-      <div class="patient-list-subheader">Here are the latest ${count} patients</div>
-      <div class="patient-list-container">
-  `;
-  
-  patientLines.forEach(line => {
-    const nameMatch = line.match(/•\s*([^(]+?)\s*\(/);
-    const mrnMatch = line.match(/MRN:\s*([^,)]+)/);
-    const ageMatch = line.match(/Age:\s*(\d+)/);
-    
-    const name = nameMatch ? nameMatch[1].trim() : 'Unknown';
-    const mrn = mrnMatch ? mrnMatch[1].trim() : 'N/A';
-    const age = ageMatch ? ageMatch[1] : 'N/A';
-    
-    const initials = name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
-    
-    result += `
-      <div class="patient-row" onclick="window.directSelectPatient('${name}')">
-        <div class="patient-row-avatar">
-          <span class="patient-row-initials">${initials}</span>
-        </div>
-        <div class="patient-row-info">
-          <div class="patient-row-name">${name}</div>
-          <div class="patient-row-meta">${mrn} • ${age} Years</div>
-        </div>
-        <div class="patient-row-chevron">›</div>
-      </div>
-    `;
-  });
-  
-  result += `
-      </div>
-      <div class="patient-list-footer">Showing recent patients</div>
-      <div class="quick-tip-box">
-        <div class="quick-tip-header">💡 Quick Tip</div>
-        <div class="quick-tip-content">
-          You can find any patient by typing:
-          <div class="quick-tip-examples">
-            <span class="example-pill" onclick="window.directSetInput('Show me [patient name]')">Show me [patient name]</span>
-            <span class="example-pill" onclick="window.directSetInput('Find MRN001')">Find MRN001</span>
-            <span class="example-pill" onclick="window.directSetInput('Search phone number')">Search phone number</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  return result;
-}
 
 function formatSOAPNote(text) {
   // ===== EXTRACT ALL SOAP NOTES =====
@@ -1194,3 +1377,220 @@ export const formatPatientCard = (patient) => {
     </div>
   `;
 };
+
+
+// ========================================
+// HELPER FUNCTIONS FOR IMAGING REPORT
+// ========================================
+
+// ✅ Helper: Format image type
+function formatImageType(type) {
+    if (!type) return 'Unknown';
+    const map = {
+        'chest_xray': 'Chest X-ray',
+        'ct_scan': 'CT Scan',
+        'mri': 'MRI Scan',
+        'ecg': 'ECG',
+        'retinal': 'Retinal Scan',
+        'ultrasound': 'Ultrasound',
+        'mammogram': 'Mammogram',
+        'fluoroscopy': 'Fluoroscopy',
+        'pet': 'PET Scan',
+        'spect': 'SPECT Scan'
+    };
+    return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// ✅ Helper: Format date
+function formatReportDate(dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+        }) + ' • ' + date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    } catch {
+        return dateString;
+    }
+}
+
+
+// ========================================
+// STRUCTURED IMAGING REPORT FORMATTER
+// With Lucide Icons (NO EMOJIS!)
+// ========================================
+
+// ========================================
+// STRUCTURED IMAGING REPORT FORMATTER
+// With Lucide Icons (NO EMOJIS!)
+// ========================================
+
+export const formatStructuredImagingReport = (data) => {
+  const { patientName, imageType, date, findings, impression, recommendations, doctorNotes, confidence } = data;
+
+  // Lucide Icons
+  const iconFileText = icons.fileText;
+  const iconSearch = icons.search;
+  const iconNotebookPen = icons.notebookPen;
+  const iconCheckCircle = icons.checkCircle;
+  const iconRefreshCw = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+
+  // ✅ FIXED: toBulletPoints function
+  const toBulletPoints = (text) => {
+    // If empty or placeholder, return as-is
+    if (!text || 
+        text === "No findings documented" || 
+        text === "Not documented" || 
+        text === "No recommendations provided" || 
+        text === "No doctor notes added") {
+      return text;
+    }
+    
+    // Split by periods that end a sentence (followed by space or newline)
+    const sentences = text.split(/(?<=\.)\s+/).filter(s => s.trim());
+    
+    // If only one sentence or no periods, return as-is
+    if (sentences.length <= 1) {
+      return text;
+    }
+    
+    // Convert each sentence to a bullet point
+    return sentences.map(s => `• ${s.trim()}`).join("\n");
+  };
+
+  // ✅ FIXED: renderSection function (properly defined)
+  const renderSection = (title, icon, content, color, bgColor, sectionKey) => {
+    const bulletContent = toBulletPoints(content);
+    const lines = bulletContent.split("\n").filter(line => line.trim());
+    const isEmpty = !content || content === "No findings documented" || content === "Not documented" || content === "No recommendations provided" || content === "No doctor notes added";
+
+    return `
+      <div style="margin-bottom:12px;border-radius:8px;border:1px solid ${color}40;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${bgColor};border-bottom:1px solid ${color}40;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;font-weight:600;color:#0F172A;">${icon} ${title}</span>
+          </div>
+          <button 
+            class="imaging-edit-btn" 
+            data-section="${sectionKey}" 
+            style="font-size:9px;color:${color};background:white;border:1px solid ${color}40;padding:2px 10px;border-radius:4px;cursor:pointer;font-weight:500;"
+          >
+            ✎ Edit
+          </button>
+        </div>
+        <div style="padding:8px 12px;background:white;">
+          ${isEmpty ? `<div style="font-size:10px;color:#94A3B8;padding:4px 0;">${content || "No content added"}</div>` : lines.map(line => `<div style="padding:2px 0;font-size:10px;color:#1E293B;">${line}</div>`).join("")}
+        </div>
+      </div>
+    `;
+  };
+
+  return `
+    <div class="imaging-report-premium" style="background:#FFFFFF;border-radius:12px;border:1px solid #E5E7EB;box-shadow:0 1px 3px rgba(0,0,0,0.04);overflow:hidden;margin:4px 0;">
+      
+      <!-- HEADER -->
+      <div style="padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #E5E7EB;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <!-- SINGLE ICON in circle -->
+            <div style="width:28px;height:28px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${iconFileText}
+            </div>
+            <div>
+              <!-- NO duplicate icon here -->
+              <div style="font-size:13px;font-weight:600;color:#0F172A;">Imaging Report – ${patientName}</div>
+              <div style="font-size:10px;color:#64748B;">
+                ${formatImageType(imageType)} ${date ? "• " + formatReportDate(date) : ""}
+              </div>
+            </div>
+          </div>
+          ${confidence ? `<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:#F0FDF4;color:#22C55E;border:1px solid #BBF7D0;">${iconCheckCircle} ${confidence}%</span>` : ""}
+        </div>
+      </div>
+
+      <!-- BODY SECTIONS -->
+      <div style="padding:12px 16px;">
+        ${renderSection("Findings", iconSearch, findings, "#2563EB", "#EFF6FF", "findings")}
+        ${renderSection("Impression", iconNotebookPen, impression, "#8B5CF6", "#FAF5FF", "impression")}
+        ${renderSection("Recommendations", iconFileText, recommendations, "#F59E0B", "#FFFBEB", "recommendations")}
+        ${renderSection("Doctor Notes", iconNotebookPen, doctorNotes, "#64748B", "#F8FAFC", "doctor_notes")}
+      </div>
+
+      <!-- FOOTER -->
+      <div style="padding:8px 16px;background:#F8FAFC;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:8px;color:#94A3B8;">${iconCheckCircle} Report generated from structured data</span>
+        <span style="font-size:8px;color:#94A3B8;">${iconRefreshCw} Updates on re-generation</span>
+      </div>
+    </div>
+  `;
+};
+
+// ========================================
+// PATIENT LIST FORMATTER
+// ========================================
+
+function formatPatientList(text) {
+  const lines = text.split('\n');
+  const patientLines = lines.filter(line => line.includes('•') || line.includes('MRN'));
+  const count = patientLines.length;
+  
+  let result = `
+    <div class="patient-list-wrapper">
+      <div class="patient-list-header">
+        <span class="patient-list-icon">👥</span>
+        <span class="patient-list-title">Recent Patients</span>
+      </div>
+      <div class="patient-list-subheader">Here are the latest ${count} patients</div>
+      <div class="patient-list-container">
+  `;
+  
+  patientLines.forEach(line => {
+    const nameMatch = line.match(/•\s*([^(]+?)\s*\(/);
+    const mrnMatch = line.match(/MRN:\s*([^,)]+)/);
+    const ageMatch = line.match(/Age:\s*(\d+)/);
+    
+    const name = nameMatch ? nameMatch[1].trim() : 'Unknown';
+    const mrn = mrnMatch ? mrnMatch[1].trim() : 'N/A';
+    const age = ageMatch ? ageMatch[1] : 'N/A';
+    
+    const initials = name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
+    
+    result += `
+      <div class="patient-row" onclick="window.directSelectPatient('${name}')">
+        <div class="patient-row-avatar">
+          <span class="patient-row-initials">${initials}</span>
+        </div>
+        <div class="patient-row-info">
+          <div class="patient-row-name">${name}</div>
+          <div class="patient-row-meta">${mrn} • ${age} Years</div>
+        </div>
+        <div class="patient-row-chevron">›</div>
+      </div>
+    `;
+  });
+  
+  result += `
+      </div>
+      <div class="patient-list-footer">Showing recent patients</div>
+      <div class="quick-tip-box">
+        <div class="quick-tip-header">💡 Quick Tip</div>
+        <div class="quick-tip-content">
+          You can find any patient by typing:
+          <div class="quick-tip-examples">
+            <span class="example-pill" onclick="window.directSetInput('Show me [patient name]')">Show me [patient name]</span>
+            <span class="example-pill" onclick="window.directSetInput('Find MRN001')">Find MRN001</span>
+            <span class="example-pill" onclick="window.directSetInput('Search phone number')">Search phone number</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  return result;
+}
