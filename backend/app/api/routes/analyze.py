@@ -207,17 +207,21 @@ If research papers are available, cite them in your recommendations (e.g., "Acco
         
         return {
             "success": True,
-            "summary": result.get('summary', ''),
-            "critical_issues": result.get('critical_issues', []),
-            "prescription_recommendations": result.get('prescription_recommendations', []),
-            "test_recommendations": result.get('test_recommendations', []),
-            "follow_up_recommendations": result.get('follow_up_recommendations', []),
-            "warnings": result.get('warnings', []),
-            "what_is_good": result.get('what_is_good', []),
-            "overall_status": result.get('overall_status', 'medium'),
-            "action_items": result.get('action_items', []),
-            "research_citations": citations,
-            "formatted_response": formatted
+            "type": "clinical_analysis",
+            "data": {
+                "title": "COMPREHENSIVE PATIENT ANALYSIS",
+                "summary": result.get('summary', ''),
+                "critical_issues": result.get('critical_issues', []),
+                "prescription_recommendations": result.get('prescription_recommendations', []),
+                "test_recommendations": result.get('test_recommendations', []),
+                "follow_up_recommendations": result.get('follow_up_recommendations', []),
+                "warnings": result.get('warnings', []),
+                "what_is_good": result.get('what_is_good', []),
+                "action_items": result.get('action_items', []),
+                "overall_status": result.get('overall_status', 'medium'),
+                "research_citations": citations,
+                "disclaimer": "This analysis is AI-generated using latest research. Final clinical judgment rests with the treating physician."
+            }
         }
         
     except Exception as e:
