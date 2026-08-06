@@ -58,7 +58,20 @@ export const formatMedicalMessage = (text, isUser = false) => {
     // Not JSON, continue to regex fallback
     console.log('📝 Not JSON, using regex fallback');
   }
-  
+
+// ===== STEP 3.5: CLINICAL ANALYSIS JSON =====
+  try {
+    const data = JSON.parse(text);
+    if (data.type === 'clinical_analysis' && data.data) {
+      console.log('📊 CLINICAL ANALYSIS JSON DETECTED');
+      return formatClinicalAnalysisFromJSON(data.data);
+    }
+  } catch (e) {
+    // Not JSON, continue
+  }
+
+
+
   // ===== STEP 4: FALLBACK - Original regex parsing (for backward compatibility) =====
   // 🩻🩻🩻 IMAGING CHECK (only if not JSON)
   if (text.includes('Imaging Reports for') || text.includes('🩻 Imaging Reports for') || text.includes('🩻 Imaging Report -')) {
@@ -235,6 +248,16 @@ function extractImagingData(text) {
 // ========================================
 
 const icons = {
+
+  layoutDashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+  triangleAlert: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+  flaskConical: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.5L4.5 18.5A2 2 0 0 0 6 22h12a2 2 0 0 0 1.5-3.5L14 8.5V2"/><path d="M14 2v6.5"/><path d="M8.5 14h7"/></svg>`,
+  shieldAlert: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>`,
+  badgeCheck: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>`,
+  clipboardCheck: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>`,
+  activity: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  info: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+
   
   search: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
 
@@ -550,13 +573,7 @@ window.viewSection = function(section, patientName) {
   window.dispatchEvent(event);
 };
 
-window.analyzePatient = function(patientName) {
-  console.log(`🔍 Analyzing patient: ${patientName}`);
-  const event = new CustomEvent('analyzePatient', { 
-    detail: { patientName } 
-  });
-  window.dispatchEvent(event);
-};
+
 // ========================================
 // FALLBACK: Format imaging report from raw text
 // ========================================
@@ -1593,4 +1610,111 @@ function formatPatientList(text) {
   `;
   
   return result;
+}
+
+// ========================================
+// CLINICAL ANALYSIS FORMATTER (NO REGEX!)
+// ========================================
+
+function formatClinicalAnalysisFromJSON(data) {
+  const iconMap = {
+    'summary': icons.layoutDashboard,
+    'critical_issues': icons.triangleAlert,
+    'prescription_recommendations': icons.pill,
+    'test_recommendations': icons.flaskConical,
+    'follow_up_recommendations': icons.calendarDays,
+    'warnings': icons.shieldAlert,
+    'what_is_good': icons.badgeCheck,
+    'action_items': icons.clipboardCheck,
+    'overall_status': icons.activity,
+    'disclaimer': icons.info,
+  };
+
+  const sectionTitles = {
+    'summary': 'Summary',
+    'critical_issues': 'Critical Issues',
+    'prescription_recommendations': 'Prescription Recommendations',
+    'test_recommendations': 'Test Recommendations',
+    'follow_up_recommendations': 'Follow-up Plan',
+    'warnings': 'Warnings',
+    'what_is_good': 'Positive Findings',
+    'action_items': 'Action Items',
+    'overall_status': 'Overall Status',
+    'disclaimer': 'Disclaimer'
+  };
+
+  let html = `
+    <div style="background:#FFFFFF;border-radius:12px;border:1px solid #E5E7EB;box-shadow:0 1px 3px rgba(0,0,0,0.04);overflow:hidden;margin:4px 0;padding:16px 20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid #F1F5F9;padding-bottom:8px;">
+        <span>${icons.layoutDashboard}</span>
+        <span style="font-size:16px;font-weight:700;color:#0F172A;">${data.title || 'COMPREHENSIVE PATIENT ANALYSIS'}</span>
+      </div>
+  `;
+
+  // Summary
+  if (data.summary) {
+    html += `
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:4px;">${icons.layoutDashboard} Summary</div>
+        <div style="font-size:14px;color:#1E293B;line-height:1.6;">${data.summary}</div>
+      </div>
+    `;
+  }
+
+  // Sections with arrays
+  const sectionKeys = ['critical_issues', 'prescription_recommendations', 'test_recommendations', 'follow_up_recommendations', 'warnings', 'what_is_good', 'action_items'];
+  
+  for (const key of sectionKeys) {
+    if (data[key] && data[key].length > 0) {
+      const icon = iconMap[key] || '';
+      const title = sectionTitles[key] || key;
+      const items = data[key].map(item => `<div style="padding:2px 0;">• ${item}</div>`).join('');
+      
+      html += `
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span>${icon}</span>
+            <span style="font-size:12px;font-weight:600;color:#0F172A;">${title}</span>
+          </div>
+          <div style="font-size:14px;color:#1E293B;line-height:1.6;padding-left:8px;">
+            ${items}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Overall Status
+  if (data.overall_status) {
+    const statusColors = {
+      'critical': '#EF4444',
+      'high': '#EF4444',
+      'medium': '#F59E0B',
+      'low': '#22C55E',
+      'stable': '#22C55E'
+    };
+    const color = statusColors[data.overall_status] || '#F59E0B';
+    html += `
+      <div style="margin-bottom:12px;border-top:1px solid #F1F5F9;padding-top:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span>${icons.activity}</span>
+          <span style="font-size:12px;font-weight:600;color:#64748B;">Overall Status:</span>
+          <span style="font-size:14px;font-weight:600;color:${color};">${data.overall_status.toUpperCase()}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Disclaimer
+  if (data.disclaimer) {
+    html += `
+      <div style="margin-top:12px;border-top:1px solid #F1F5F9;padding-top:12px;display:flex;align-items:flex-start;gap:6px;">
+        <span style="color:#94A3B8;">${icons.info}</span>
+        <span style="font-size:11px;color:#94A3B8;line-height:1.4;">${data.disclaimer}</span>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  return html;
 }

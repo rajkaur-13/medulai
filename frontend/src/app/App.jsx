@@ -188,17 +188,12 @@ How can I help you today?`;
       }
       try {
         const result = await api.analyzePatient(token, patient.id);
-        if (result && result.formatted_response) {
-          const formatMessage = (text) => {
-            if (!text) return '';
-            let formatted = text.replace(/\n/g, '<br/>');
-            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            return formatted;
-          };
-          const formattedMessage = formatMessage(result.formatted_response);
+        if (result && result.data) {
+          console.log('🔴 SENDING TO CHAT:', JSON.stringify(result)); // ← ADD THIS LINE
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
-            text: formattedMessage, 
+            text: JSON.stringify(result), // ← Send as JSON string
+             
             isUser: false, 
             timestamp: new Date() 
           }]);
@@ -480,18 +475,12 @@ How can I help you with ${currentPatient.name} today?`;
 
     // ===== STEP 5: Handle other analysis types =====
     if (analysis?.formatted_response) {
-      const formatMessage = (text) => {
-        if (!text) return "";
-        let formatted = text.replace(/\n/g, "<br/>");
-        formatted = formatted.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-        return formatted;
-      };
-      const formattedMessage = formatMessage(analysis.formatted_response);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
-        text: formattedMessage,
+        text: analysis.formatted_response,
         isUser: false,
         timestamp: new Date()
+      
       }]);
     }
   };

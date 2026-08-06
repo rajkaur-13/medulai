@@ -24,3 +24,9 @@ frontend/node_modules/
 backend/venv/
 frontend/.cache/
 evaluation/.env
+
+*.backup
+*.backup2
+*.backup3
+*.backup4
+*.backup5
