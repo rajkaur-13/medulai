@@ -1,4 +1,17 @@
 // ========================================
+// GLOBAL: window.analyzePatient
+// ========================================
+
+window.handleAnalyzeClick = function(patientName) {
+  console.log('🔍 handleAnalyzeClick called for:', patientName);
+  if (window.analyzePatient) {
+    window.analyzePatient(patientName);
+  } else {
+    console.error('❌ window.analyzePatient is not defined');
+  }
+};
+
+// ========================================
 // PREMIUM MEDICAL MESSAGE FORMATTER
 // Complete rewrite with Lucide icons & structured content
 // ========================================
@@ -542,7 +555,7 @@ function formatPatientSelected(text) {
               <div class="cta-desc">Get clinical insights, risk assessment, recommendations, and follow-up guidance.</div>
             </div>
           </div>
-          <button class="cta-btn" onclick="window.analyzePatient('${patientName}')">Analyze Patient</button>
+          <button class="cta-btn" onclick="window.handleAnalyzeClick('${patientName}')">Analyze Patient</button>
         </div>
         
         <div class="snapshot-footer">
@@ -1613,10 +1626,12 @@ function formatPatientList(text) {
 }
 
 // ========================================
-// CLINICAL ANALYSIS FORMATTER (NO REGEX!)
+// CLINICAL ANALYSIS FORMATTER (PREMIUM)
+// With Lucide icons, colors, and proper styling
 // ========================================
 
 function formatClinicalAnalysisFromJSON(data) {
+  // Icon mapping with proper Lucide icons
   const iconMap = {
     'summary': icons.layoutDashboard,
     'critical_issues': icons.triangleAlert,
@@ -1628,6 +1643,26 @@ function formatClinicalAnalysisFromJSON(data) {
     'action_items': icons.clipboardCheck,
     'overall_status': icons.activity,
     'disclaimer': icons.info,
+  };
+
+  const sectionColors = {
+    'critical_issues': '#EF4444',
+    'prescription_recommendations': '#2563EB',
+    'test_recommendations': '#8B5CF6',
+    'follow_up_recommendations': '#F59E0B',
+    'warnings': '#F59E0B',
+    'what_is_good': '#22C55E',
+    'action_items': '#2563EB',
+  };
+
+  const sectionBgColors = {
+    'critical_issues': '#FEF2F2',
+    'prescription_recommendations': '#EFF6FF',
+    'test_recommendations': '#F5F3FF',
+    'follow_up_recommendations': '#FFFBEB',
+    'warnings': '#FFFBEB',
+    'what_is_good': '#F0FDF4',
+    'action_items': '#EFF6FF',
   };
 
   const sectionTitles = {
@@ -1644,39 +1679,60 @@ function formatClinicalAnalysisFromJSON(data) {
   };
 
   let html = `
-    <div style="background:#FFFFFF;border-radius:12px;border:1px solid #E5E7EB;box-shadow:0 1px 3px rgba(0,0,0,0.04);overflow:hidden;margin:4px 0;padding:16px 20px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid #F1F5F9;padding-bottom:8px;">
-        <span>${icons.layoutDashboard}</span>
-        <span style="font-size:16px;font-weight:700;color:#0F172A;">${data.title || 'COMPREHENSIVE PATIENT ANALYSIS'}</span>
+    <div style="background:#FFFFFF;border-radius:16px;border:1px solid #E5E7EB;box-shadow:0 4px 12px rgba(0,0,0,0.05);overflow:hidden;margin:4px 0;padding:0;">
+      
+      <!-- HEADER -->
+      <div style="padding:16px 20px 12px 20px;background:linear-gradient(135deg, #F8FAFC, #F1F5F9);border-bottom:2px solid #E5E7EB;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;background:#2563EB;border-radius:8px;color:white;flex-shrink:0;">
+            <span>${icons.layoutDashboard}</span>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#0F172A;">${data.title || 'COMPREHENSIVE PATIENT ANALYSIS'}</div>
+            <div style="font-size:11px;color:#64748B;">AI-generated clinical decision support</div>
+          </div>
+        </div>
       </div>
+      
+      <div style="padding:16px 20px;">
   `;
 
-  // Summary
+  // SUMMARY
   if (data.summary) {
     html += `
-      <div style="margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:600;color:#64748B;margin-bottom:4px;">${icons.layoutDashboard} Summary</div>
-        <div style="font-size:14px;color:#1E293B;line-height:1.6;">${data.summary}</div>
+      <div style="margin-bottom:16px;padding:12px 16px;background:#F8FAFC;border-radius:8px;border-left:3px solid #2563EB;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="color:#2563EB;">${icons.layoutDashboard}</span>
+          <span style="font-size:11px;font-weight:600;color:#64748B;">Summary</span>
+        </div>
+        <div style="font-size:13px;color:#1E293B;line-height:1.6;">${data.summary}</div>
       </div>
     `;
   }
 
-  // Sections with arrays
+  // SECTIONS
   const sectionKeys = ['critical_issues', 'prescription_recommendations', 'test_recommendations', 'follow_up_recommendations', 'warnings', 'what_is_good', 'action_items'];
   
   for (const key of sectionKeys) {
     if (data[key] && data[key].length > 0) {
       const icon = iconMap[key] || '';
       const title = sectionTitles[key] || key;
-      const items = data[key].map(item => `<div style="padding:2px 0;">• ${item}</div>`).join('');
+      const color = sectionColors[key] || '#64748B';
+      const bgColor = sectionBgColors[key] || '#F8FAFC';
+      const items = data[key].map(item => `
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:13px;color:#1E293B;line-height:1.5;">
+          <span style="color:${color};font-weight:bold;">•</span>
+          <span>${item}</span>
+        </div>
+      `).join('');
       
       html += `
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <span>${icon}</span>
+        <div style="margin-bottom:14px;padding:12px 14px;background:${bgColor};border-radius:8px;border-left:3px solid ${color};">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="color:${color};">${icon}</span>
             <span style="font-size:12px;font-weight:600;color:#0F172A;">${title}</span>
           </div>
-          <div style="font-size:14px;color:#1E293B;line-height:1.6;padding-left:8px;">
+          <div style="padding-left:4px;">
             ${items}
           </div>
         </div>
@@ -1684,37 +1740,59 @@ function formatClinicalAnalysisFromJSON(data) {
     }
   }
 
-  // Overall Status
+  // OVERALL STATUS
   if (data.overall_status) {
     const statusColors = {
-      'critical': '#EF4444',
-      'high': '#EF4444',
-      'medium': '#F59E0B',
-      'low': '#22C55E',
-      'stable': '#22C55E'
+      'critical': { color: '#EF4444', bg: '#FEF2F2', label: 'CRITICAL' },
+      'high': { color: '#EF4444', bg: '#FEF2F2', label: 'HIGH RISK' },
+      'medium': { color: '#F59E0B', bg: '#FFFBEB', label: 'MEDIUM RISK' },
+      'low': { color: '#22C55E', bg: '#F0FDF4', label: 'LOW RISK' },
+      'stable': { color: '#22C55E', bg: '#F0FDF4', label: 'STABLE' }
     };
-    const color = statusColors[data.overall_status] || '#F59E0B';
+    const status = statusColors[data.overall_status] || statusColors['medium'];
     html += `
-      <div style="margin-bottom:12px;border-top:1px solid #F1F5F9;padding-top:12px;">
+      <div style="margin-top:16px;padding:12px 16px;background:${status.bg};border-radius:8px;border:1px solid ${status.color}30;display:flex;align-items:center;justify-content:space-between;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span>${icons.activity}</span>
+          <span style="color:${status.color};">${icons.activity}</span>
           <span style="font-size:12px;font-weight:600;color:#64748B;">Overall Status:</span>
-          <span style="font-size:14px;font-weight:600;color:${color};">${data.overall_status.toUpperCase()}</span>
+          <span style="font-size:14px;font-weight:700;color:${status.color};">${status.label}</span>
+        </div>
+        <div style="width:60px;height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden;">
+          <div style="width:${data.overall_status === 'critical' ? '100' : data.overall_status === 'high' ? '75' : data.overall_status === 'medium' ? '50' : data.overall_status === 'low' ? '25' : '10'}%;height:100%;background:${status.color};border-radius:3px;"></div>
         </div>
       </div>
     `;
   }
 
-  // Disclaimer
+  // DISCLAIMER
   if (data.disclaimer) {
     html += `
-      <div style="margin-top:12px;border-top:1px solid #F1F5F9;padding-top:12px;display:flex;align-items:flex-start;gap:6px;">
-        <span style="color:#94A3B8;">${icons.info}</span>
-        <span style="font-size:11px;color:#94A3B8;line-height:1.4;">${data.disclaimer}</span>
+      <div style="margin-top:16px;padding:10px 14px;background:#F8FAFC;border-radius:8px;display:flex;align-items:flex-start;gap:6px;">
+        <span style="color:#94A3B8;margin-top:1px;">${icons.info}</span>
+        <span style="font-size:10px;color:#94A3B8;line-height:1.4;">${data.disclaimer}</span>
       </div>
     `;
   }
 
-  html += `</div>`;
+  html += `
+      </div>
+    </div>
+  `;
+
   return html;
 }
+
+// ========================================
+// GLOBAL CLICK HANDLER FOR ANALYZE BUTTON
+// ========================================
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.cta-btn');
+  if (btn && btn.classList.contains('cta-btn')) {
+    const patientName = btn.getAttribute('data-patient');
+    if (patientName && window.analyzePatient) {
+      console.log('🔍 Click detected on analyze button for:', patientName);
+      window.analyzePatient(patientName);
+    }
+  }
+});
