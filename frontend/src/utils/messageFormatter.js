@@ -261,7 +261,19 @@ function extractImagingData(text) {
 // ========================================
 
 const icons = {
-
+  calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  stethoscope: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2.7a.3.3 0 0 0-.2-.4"/><path d="M10.6 9.4a.3.3 0 0 0-.3.3v1.5"/><path d="M17.4 12.6a.3.3 0 0 0 .3-.3v-1.5"/><path d="M14 5h4"/><path d="M4 5h4"/><path d="M12 3v1"/><path d="M12 12v7"/><path d="M5 19h14"/><path d="M10 9.4a3 3 0 0 0-4 0"/><path d="M14 9.4a3 3 0 0 1 4 0"/><path d="M8 12c-1.5 0-3-1.5-3-3V6"/><path d="M16 12c1.5 0 3-1.5 3-3V6"/><path d="M12 18c-1 0-2-.5-2-1.5V12"/><path d="M12 18c1 0 2-.5 2-1.5V12"/></svg>`,
+  
+  user: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+  
+  fileText: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  
+  pill: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 0 1 0-7l2-2a4.95 4.95 0 0 1 7 0l7 7a4.95 4.95 0 0 1 0 7l-2 2a4.95 4.95 0 0 1-7 0Z"/><path d="m8.5 8.5 7 7"/></svg>`,
+  
+  scan: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12"x2="17" y2="12"/></svg>`,
+  
+  braincircuit: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-circuit-icon lucide-brain-circuit"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M9 13a4.5 4.5 0 0 0 3-4"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M12 13h4"/><path d="M12 18h6a2 2 0 0 1 2 2v1"/><path d="M12 8h8"/><path d="M16 8V5a2 2 0 0 1 2-2"/><circle cx="16" cy="13" r=".5"/><circle cx="18" cy="3" r=".5"/><circle cx="20" cy="21" r=".5"/><circle cx="20" cy="8" r=".5"/></svg>`,
+  hospital: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/><path d="M6 6h12"/><path d="M6 18h12"/></svg>`,
   layoutDashboard: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
   triangleAlert: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
   flaskConical: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.5L4.5 18.5A2 2 0 0 0 6 22h12a2 2 0 0 0 1.5-3.5L14 8.5V2"/><path d="M14 2v6.5"/><path d="M8.5 14h7"/></svg>`,
@@ -301,7 +313,6 @@ const icons = {
 
 function formatPatientSelected(text) {
   // ===== EXTRACT PATIENT DATA FROM TEXT =====
-  // First, try to extract from the text using patterns
   let patientName = 'Patient';
   let mrn = 'N/A', age = 'N/A', gender = 'N/A';
   let allergies = 'None', conditions = 'None';
@@ -354,8 +365,10 @@ function formatPatientSelected(text) {
     }
   }
   
-  // Extract SOAP notes count
-  let soapCount = 0;
+  // Extract counts
+  let soapCount = 0, rxCount = 0, aptCount = 0, imgCount = 0;
+  
+  // SOAP notes count
   if (text.includes('No SOAP notes') || text.includes('No SOAP notes yet')) {
     soapCount = 0;
   } else {
@@ -371,8 +384,7 @@ function formatPatientSelected(text) {
     }
   }
   
-  // Extract prescriptions count
-  let rxCount = 0;
+  // Prescriptions count
   const noRxMatch = text.match(/No prescriptions yet/i);
   if (!noRxMatch) {
     const rxSection = text.match(/Prescriptions?\s*\((\d+)\)/i);
@@ -381,8 +393,7 @@ function formatPatientSelected(text) {
     }
   }
   
-  // Extract appointments count
-  let aptCount = 0;
+  // Appointments count
   if (!text.includes('No appointments scheduled') && !text.includes('No upcoming appointments')) {
     const aptSection = text.match(/Appointments?\s*\((\d+)\)/i);
     if (aptSection) {
@@ -390,8 +401,7 @@ function formatPatientSelected(text) {
     }
   }
   
-  // Extract imaging reports count
-  let imgCount = 0;
+  // Imaging reports count
   const noImgMatch = text.match(/No images analyzed yet/i);
   if (!noImgMatch) {
     const imgSection = text.match(/Imaging Reports?\s*\((\d+)\)/i);
@@ -400,7 +410,7 @@ function formatPatientSelected(text) {
     }
   }
   
-  // ===== BUILD THE NEW CARD =====
+  // ===== BUILD THE NEW CARD WITH LUCIDE ICONS =====
   const allergyList = allergies !== 'None' ? allergies.split(',').map(a => a.trim()).filter(a => a !== '') : [];
   const conditionList = conditions !== 'None' ? conditions.split(',').map(c => c.trim()).filter(c => c !== '') : [];
   
@@ -433,6 +443,7 @@ function formatPatientSelected(text) {
           </div>
         </div>
         
+        <!-- Allergies & Conditions -->
         <div class="snapshot-alerts-row">
           <div class="alert-card alert-allergy">
             <div class="alert-icon-wrapper alert-icon-red">
@@ -460,7 +471,7 @@ function formatPatientSelected(text) {
         <div class="snapshot-section" onclick="window.viewSection('medications', '${patientName}')">
           <div class="snapshot-section-header">
             <div class="snapshot-section-left">
-              <span class="snapshot-section-icon">💊</span>
+              <span class="snapshot-section-icon">${icons.pill}</span>
               <span class="snapshot-section-title">Active Medications</span>
               <span class="snapshot-section-count">${medications.length}</span>
             </div>
@@ -478,7 +489,7 @@ function formatPatientSelected(text) {
         <div class="snapshot-section" onclick="window.viewSection('prescriptions', '${patientName}')">
           <div class="snapshot-section-header">
             <div class="snapshot-section-left">
-              <span class="snapshot-section-icon">📄</span>
+              <span class="snapshot-section-icon">${icons.fileText}</span>
               <span class="snapshot-section-title">Active Prescriptions</span>
               <span class="snapshot-section-count">${rxCount}</span>
             </div>
@@ -496,7 +507,7 @@ function formatPatientSelected(text) {
         <div class="snapshot-section" onclick="window.viewSection('soap', '${patientName}')">
           <div class="snapshot-section-header">
             <div class="snapshot-section-left">
-              <span class="snapshot-section-icon">📝</span>
+              <span class="snapshot-section-icon">${icons.notebookPen}</span>
               <span class="snapshot-section-title">SOAP Notes</span>
               <span class="snapshot-section-count">${soapCount}</span>
             </div>
@@ -514,7 +525,7 @@ function formatPatientSelected(text) {
         <div class="snapshot-section" onclick="window.viewSection('imaging', '${patientName}')">
           <div class="snapshot-section-header">
             <div class="snapshot-section-left">
-              <span class="snapshot-section-icon">🩻</span>
+              <span class="snapshot-section-icon">${icons.scanLine}</span>
               <span class="snapshot-section-title">Imaging Reports</span>
               <span class="snapshot-section-count">${imgCount}</span>
             </div>
@@ -532,7 +543,7 @@ function formatPatientSelected(text) {
         <div class="snapshot-section" onclick="window.viewSection('appointments', '${patientName}')">
           <div class="snapshot-section-header">
             <div class="snapshot-section-left">
-              <span class="snapshot-section-icon">📅</span>
+              <span class="snapshot-section-icon">${icons.calendarDays}</span>
               <span class="snapshot-section-title">Upcoming Appointments</span>
               <span class="snapshot-section-count">${aptCount}</span>
             </div>
@@ -1796,3 +1807,5 @@ document.addEventListener('click', function(e) {
     }
   }
 });
+
+export { icons };
