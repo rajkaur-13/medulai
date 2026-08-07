@@ -11,6 +11,7 @@ import { useSoap } from '../features/soap/hooks/useSoap';
 import { usePrescription } from '../features/prescriptions/hooks/usePrescription';
 import { useAppointments } from '../features/appointments/hooks/useAppointments';
 
+
 // Components
 import ChatPanel from "../features/chat/components/ChatPanel";
 import PatientPanel from "../features/patients/components/PatientPanel";
@@ -20,15 +21,133 @@ import ClinicalPanel from "../features/clinical/components/ClinicalPanel";
 import { api } from '../services/api';
 import { formatStructuredImagingReport } from '../utils/messageFormatter';
 
+//Icons
+import { icons } from '../utils/messageFormatter';
+
+
+
 function App() {
   const { token, isAuthenticated, handleLogin, handleLogout, recentAppointments, setRecentAppointments } = useAuth();
 
-  const welcomeMessage = `🏥 <strong>Welcome to MediAgent!</strong><br/>
-I'm your AI medical assistant.<br/><br/>
-🔹 <strong>To work with a patient:</strong> Search for them above<br/>
-🔹 <strong>To ask a medical question:</strong> Just type your question<br/><br/>
-Selected patient will appear here, and all tools will become available.<br/><br/>
-How can I help you today?`;
+  const welcomeMessage = `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0; max-width: 720px;">
+    
+    <!-- HEADER -->
+    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+      <span style="font-size: 18px; font-weight: 700; color: #111827;">
+        👋 Welcome to 
+        <span style="background: linear-gradient(135deg, #2563EB, #7C3AED); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          MediAgent!
+        </span>
+      </span>
+    </div>
+    
+    <!-- SUBTITLE -->
+    <div style="font-size: 14px; color: #64748B; margin-bottom: 16px; line-height: 1.5;">
+      I'm your AI-powered clinical assistant. I can help you with:
+    </div>
+    
+    <!-- CAPABILITY LIST -->
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;">
+      
+      <!-- Generic Medical Questions -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #EEF2FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #4F46E5;">${icons.stethoscope}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">Generic Medical Questions</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Ask about symptoms, diseases, treatments, medications, clinical guidelines, and medical concepts.</div>
+        </div>
+      </div>
+      
+      <!-- Patient Search & Context -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #F0FDF4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #16A34A;">${icons.user}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">Patient Search & Context</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Find patients and view comprehensive clinical context instantly.</div>
+        </div>
+      </div>
+      
+      <!-- SOAP Note Generation -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #D97706;">${icons.fileText}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">SOAP Note Generation</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Generate structured SOAP notes with AI assistance.</div>
+        </div>
+      </div>
+      
+      <!-- Prescription Management -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #FCE4EC; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #E11D48;">${icons.pill}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">Prescription Management</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Create and optimize patient prescriptions.</div>
+        </div>
+      </div>
+      
+      <!-- Medical Imaging Analysis -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #F3E8FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #7C3AED;">${icons.scan}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">Medical Image Analysis</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Analyze X-rays, CT scans, MRI, ultrasound, and other medical images with AI-generated findings and impressions.</div>
+        </div>
+      </div>
+      
+      <!-- Appointment Scheduling -->
+      <div style="display: flex; align-items: flex-start; gap: 12px; padding: 6px 10px; border-radius: 10px; transition: background 0.15s; cursor: default;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #E0F2FE; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #0284C7;">${icons.calendar}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">Appointment Scheduling</div>
+          <div style="font-size: 12px; color: #64748B; line-height: 1.4; text-align: justify;">Schedule and manage patient appointments efficiently.</div>
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- DIVIDER -->
+    <div style="height: 1px; background: #E5E7EB; margin: 0 0 14px 0;"></div>
+    
+    <!-- HIGHLIGHT SECTION - AI Analysis & Recommendations -->
+    <div style="background: #F7FAFF; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <div style="width: 38px; height: 38px; border-radius: 8px; background: #DBEAFE; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;">
+          <span style="color: #5386f3;">${icons.braincircuit}</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 13px; font-weight: 600; color: #0F172A;">AI Analysis & Recommendations</div>
+          <div style="font-size: 12px; color: #475569; line-height: 1.5; margin-top: 2px; text-align: justify;">
+            Analyze patient history, allergies, chronic conditions, SOAP notes, prescriptions, laboratory results (if available), medical imaging, appointments, and other clinical data to generate AI-powered insights, identify potential risks, summarize important findings, and provide evidence-based clinical recommendations to support healthcare professionals.
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- CLOSING -->
+    <div style="font-size: 16px; font-weight: 600; color: #0F172A; margin-top: 6px;">
+      How can I assist you today?
+    </div>
+    
+    <!-- TIMESTAMP -->
+    <div style="margin-top: 12px; font-size: 10px; color: #94A3B8; letter-spacing: 0.3px;">
+      ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+    </div>
+    
+  </div>
+`;
 
   const [messages, setMessages] = useState([
     { id: '1', text: welcomeMessage, isUser: false, timestamp: new Date() }

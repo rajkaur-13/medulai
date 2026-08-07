@@ -62,30 +62,49 @@
   flex-shrink: 0;
 }
 
-/* ----- Search ----- */
+/* ========================================
+   SEARCH CONTAINER - COMPLETE FIX
+   ======================================== */
 .search-container {
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .search-container .search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: #94A3B8;
-  font-size: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
 }
 
 .search-container input {
   width: 100%;
-  height: 38px;
-  padding: 0 50px 0 36px;
-  border: 1px solid #E5E7EB;
+  height: 42px;
+  padding: 0 52px 0 38px !important;
+  border: 1.5px solid #E5E7EB;
   border-radius: 12px;
   font-size: 13px;
   background: #FFFFFF;
   transition: all 0.2s ease;
+  color: #0F172A;
+  line-height: 42px;
+  box-sizing: border-box;
+}
+
+.search-container input::placeholder {
+  color: #94A3B8;
+  font-size: 13px;
 }
 
 .search-container input:focus {
@@ -94,62 +113,45 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.search-container .filter-icon {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94A3B8;
-  cursor: pointer;
-}
-
-/* ========================================
-   SEARCH ARROW & DROPDOWN
-   ======================================== */
-.search-arrow {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #2563EB;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  z-index: 2;
-}
-
-.search-arrow:hover {
-  background: #EFF6FF;
-}
-
-.search-arrow.disabled {
-  color: #EF4444;
-  cursor: not-allowed;
-}
-
-.search-arrow.disabled:hover {
-  background: none;
-}
-
+/* DROPDOWN ARROW - EXTREME RIGHT & VISIBLE */
 .search-dropdown-arrow {
   position: absolute;
-  right: 42px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94A3B8;
+  color: #64748B;
   cursor: pointer;
-  font-size: 10px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 8px;
   transition: all 0.2s ease;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F8FAFC;
+  border: 1.5px solid #E5E7EB;
+  font-weight: 700;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .search-dropdown-arrow:hover {
-  background: #F1F5F9;
-  color: #0F172A;
+  background: #EFF6FF;
+  border-color: #2563EB;
+  color: #2563EB;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+/* HIDE the quick-select arrow (→) */
+.search-arrow {
+  display: none !important;
+}
+
+/* Remove any filter icon */
+.search-container .filter-icon {
+  display: none !important;
 }
 
 /* ========================================
@@ -651,10 +653,10 @@
   background: #FFFFFF;
   border: 1px solid #F1F5F9;
   border-radius: 14px;
-  padding: 20px 16px;
+  padding: 100px 24px; 
   text-align: center;
   color: #94A3B8;
-  flex-shrink: 0;
+  width: 100%;
 }
 
 .no-patient-premium span {
@@ -674,6 +676,26 @@
 .no-patient-premium small {
   font-size: 11px;
   color: #94A3B8;
+}
+
+.patient-content-area {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 0;     /* ← Control the empty space with padding */
+  
+}
+
+.no-patient-selected-container {
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;        /* ← ADD THIS */
+  flex: 1; 
+  width: 100%;
+  
 }
 
 /* ========================================
@@ -858,35 +880,6 @@
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-
-
-/* ========================================
-   COMPACT SEARCH
-   ======================================== */
-
-.search-container {
-  padding: 6px 8px !important;
-  min-height: 36px !important;
-}
-
-.search-container input {
-  font-size: 12px !important;
-  padding: 4px 8px !important;
-  min-height: 28px !important;
-}
-
-.search-icon {
-  font-size: 12px !important;
-}
-
-.search-dropdown-arrow {
-  font-size: 10px !important;
-}
-
-.search-arrow {
-  font-size: 12px !important;
-  padding: 2px 6px !important;
 }
 
 
