@@ -308,14 +308,14 @@ function App() {
       try {
         const result = await api.analyzePatient(token, patient.id);
         if (result && result.data) {
-          console.log('🔴 SENDING TO CHAT:', JSON.stringify(result)); // ← ADD THIS LINE
+          console.log('🔴 SENDING TO CHAT:', JSON.stringify(result));
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
-            text: JSON.stringify(result), // ← Send as JSON string
-             
+            text: result,
             isUser: false, 
             timestamp: new Date() 
           }]);
+          console.log('✅ Message added to chat');
         } else if (result && result.reply) {
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
@@ -343,15 +343,20 @@ function App() {
     };
   }, [handleDirectPatientSelect, setInput, sendChatMessage, token, currentPatient, setCurrentPatient, setPatientCache, setAllPatientNames, allPatientNames, patients, setMessages, api]);
 
+  // ===== FIXED: Auto-load patient into chat with typeof checks =====
   useEffect(() => {
     if (currentPatient && token) {
       const lastMessage = messages[messages.length - 1];
+      
+      // ✅ Check if text is a string before using .includes()
       const isPrescription = lastMessage && 
+        typeof lastMessage.text === 'string' &&
         (lastMessage.text.includes('Prescription generated') || 
          lastMessage.text.includes('Medication:'));
       
       const patientInfoExists = messages.some(msg => 
-        msg.text && msg.text.includes(`Patient Selected: ${currentPatient.name}`)
+        msg.text && typeof msg.text === 'string' && 
+        msg.text.includes(`Patient Selected: ${currentPatient.name}`)
       );
 
       if (!patientInfoExists && messages.length > 0 && !isPrescription) {
@@ -541,7 +546,33 @@ How can I help you with ${currentPatient.name} today?`;
       document.removeEventListener('click', handleClick);
     };
   }, [currentReportData, currentReportId, editingSection]);
+  
 
+    // ===== PERMANENT ANALYZE BUTTON HANDLER =====
+  useEffect(() => {
+    const handleAnalyzeClick = (e) => {
+      const btn = e.target.closest('.cta-btn');
+      if (!btn) return;
+      
+      const patientName = btn.getAttribute('data-patient');
+      if (!patientName) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('🔍 Analyze button clicked for:', patientName);
+      
+      if (window.analyzePatient) {
+        window.analyzePatient(patientName);
+      } else {
+        console.error('❌ window.analyzePatient is not defined');
+      }
+    };
+
+    document.addEventListener('click', handleAnalyzeClick, true);
+    return () => document.removeEventListener('click', handleAnalyzeClick, true);
+  }, []);
+  
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
