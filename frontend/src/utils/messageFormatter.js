@@ -17,7 +17,16 @@ window.handleAnalyzeClick = function(patientName) {
 // ========================================
 
 export const formatMedicalMessage = (text, isUser = false) => {
-  
+
+
+// ✅ STEP 0: Handle objects (clinical analysis JSON)
+if (!isUser && typeof text === 'object' && text !== null) {
+  if (text.type === 'clinical_analysis' && text.data) {
+    console.log('📊 CLINICAL ANALYSIS JSON DETECTED in formatMedicalMessage');
+    return formatClinicalAnalysisFromJSON(text.data);
+  }
+  return JSON.stringify(text);
+}
   // ✅ STEP 1: User messages
   if (isUser) {
     const div = document.createElement('div');
@@ -566,7 +575,7 @@ function formatPatientSelected(text) {
               <div class="cta-desc">Get clinical insights, risk assessment, recommendations, and follow-up guidance.</div>
             </div>
           </div>
-          <button class="cta-btn" onclick="window.handleAnalyzeClick('${patientName}')">Analyze Patient</button>
+          <button class="cta-btn" data-patient="${patientName}" id="analyze-btn-${patientName.replace(/\s/g, '')}">Analyze Patient</button>
         </div>
         
         <div class="snapshot-footer">
@@ -910,31 +919,77 @@ function formatPrescriptionsGrouped(text) {
 
 
 function formatSOAPNote(text) {
+  // ===== HELPER: Remove ** markers without regex =====
+  const removeAsterisks = (str) => {
+    if (!str) return str;
+    let result = str;
+    while (result.indexOf('**') !== -1) {
+      result = result.replace('**', '');
+    }
+    return result;
+  };
+  
+  // ===== HELPER: Format plan with bullet points - NO REGEX =====
+  const formatPlanWithBullets = (text) => {
+    if (!text || text === 'Not documented') return text;
+    
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 1) return text;
+    
+    let hasBullets = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+        hasBullets = true;
+        break;
+      }
+    }
+    
+    if (hasBullets) {
+      return lines.map(line => {
+        let clean = line.trim();
+        if (clean.startsWith('•') || clean.startsWith('-')) {
+          clean = clean.substring(1).trim();
+        }
+        return `<div class="soap-plan-item" style="padding:2px 0;font-size:13px;color:#475569;">• ${clean}</div>`;
+      }).join('');
+    }
+    
+    return lines.map(line => 
+      `<div class="soap-plan-item" style="padding:2px 0;font-size:13px;color:#475569;">• ${line.trim()}</div>`
+    ).join('');
+  };
+  
   // ===== EXTRACT ALL SOAP NOTES =====
-  // Parse the text to extract individual SOAP notes
-  const noteBlocks = text.split(/---\n/).filter(block => block.trim());
+  const noteBlocks = text.split('---\n').filter(block => block.trim());
   
-  let result = '';
-  let headerExtracted = false;
   let patientName = '';
+  let allNotes = [];
   
-  // Extract patient name from first note
-  const nameMatch = text.match(/SOAP Notes for ([^\n]+)/);
-  if (nameMatch) {
-    patientName = nameMatch[1].trim();
+  // Extract patient name using string methods (no regex)
+  const nameIndex = text.indexOf('SOAP Notes for ');
+  if (nameIndex !== -1) {
+    const start = nameIndex + 'SOAP Notes for '.length;
+    const end = text.indexOf('\n', start);
+    patientName = text.substring(start, end !== -1 ? end : text.length).trim();
+    patientName = removeAsterisks(patientName);
   }
   
-  // Process each SOAP note
-  noteBlocks.forEach((block, index) => {
-    if (!block.trim()) return;
-    
+  // ===== PARSE ALL NOTES =====
+  const parseNote = (block) => {
     // Extract date
-    const dateMatch = block.match(/📅 ([^\n]+)/);
+    const dateIndex = block.indexOf('📅 ');
     let dateStr = 'Unknown Date';
-    if (dateMatch) {
-      const rawDate = dateMatch[1].trim().replace(/\*\*/g, '').trim();
+    let rawDateStr = '';
+    
+    if (dateIndex !== -1) {
+      const start = dateIndex + '📅 '.length;
+      const end = block.indexOf('\n', start);
+      rawDateStr = block.substring(start, end !== -1 ? end : block.length).trim();
+      rawDateStr = removeAsterisks(rawDateStr);
+      
       try {
-        const date = new Date(rawDate);
+        const date = new Date(rawDateStr);
         if (!isNaN(date.getTime())) {
           dateStr = date.toLocaleDateString('en-US', { 
             month: 'short', 
@@ -942,164 +997,259 @@ function formatSOAPNote(text) {
             year: 'numeric' 
           });
         } else {
-          dateStr = rawDate;
+          dateStr = rawDateStr;
         }
       } catch {
-        dateStr = rawDate;
+        dateStr = rawDateStr;
       }
     }
     
-    // Extract SOAP sections
-    const subjectiveMatch = block.match(/SUBJECTIVE:\s*([\s\S]*?)(?=OBJECTIVE:|Objective:|$)/i);
-    const objectiveMatch = block.match(/OBJECTIVE:\s*([\s\S]*?)(?=ASSESSMENT:|Assessment:|$)/i);
-    const assessmentMatch = block.match(/ASSESSMENT:\s*([\s\S]*?)(?=PLAN:|Plan:|$)/i);
-    const planMatch = block.match(/PLAN:\s*([\s\S]*?)(?=\n---|$)/i);
+    // Helper: Extract section content
+    const extractSection = (block, sectionName, alternateName, nextMarkers) => {
+      let startIndex = block.indexOf(sectionName);
+      if (startIndex === -1 && alternateName) {
+        startIndex = block.indexOf(alternateName);
+      }
+      if (startIndex === -1) return 'Not documented';
+      
+      const contentStart = startIndex + (block.indexOf(sectionName, startIndex) !== -1 ? sectionName : alternateName).length;
+      let contentEnd = block.length;
+      
+      for (const marker of nextMarkers) {
+        const pos = block.indexOf(marker, contentStart);
+        if (pos !== -1 && pos < contentEnd) {
+          contentEnd = pos;
+        }
+      }
+      
+      const content = block.substring(contentStart, contentEnd).trim();
+      return removeAsterisks(content) || 'Not documented';
+    };
     
-    // Clean ** markers from content
-    const subjective = subjectiveMatch ? subjectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const objective = objectiveMatch ? objectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const assessment = assessmentMatch ? assessmentMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const plan = planMatch ? planMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
+    const subjective = extractSection(block, 'SUBJECTIVE:', 'Subjective:', ['OBJECTIVE:', 'Objective:', 'ASSESSMENT:', 'Assessment:', 'PLAN:', 'Plan:']);
+    const objective = extractSection(block, 'OBJECTIVE:', 'Objective:', ['ASSESSMENT:', 'Assessment:', 'PLAN:', 'Plan:']);
+    const assessment = extractSection(block, 'ASSESSMENT:', 'Assessment:', ['PLAN:', 'Plan:']);
     
-    // Build the note card
-    result += `
-      <div class="soap-note-premium">
-        <div class="soap-note-date">
-          <span class="soap-note-calendar-icon">📅</span>
-          <span class="soap-note-date-text">${dateStr}</span>
-        </div>
-        <div class="soap-note-body">
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">S</span>
-              <span class="soap-letter-content">${subjective}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">O</span>
-              <span class="soap-letter-content">${objective}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">A</span>
-              <span class="soap-letter-content">${assessment}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">P</span>
-              <span class="soap-letter-content">${formatPlanWithBullets(plan)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Add divider between notes (except after the last one)
-    if (index < noteBlocks.length - 1) {
-      result += `<div class="soap-note-divider"></div>`;
+    // Extract PLAN separately (handles --- separator)
+    let plan = 'Not documented';
+    const planStart = block.indexOf('PLAN:');
+    if (planStart === -1) {
+      const lowerStart = block.indexOf('Plan:');
+      if (lowerStart !== -1) {
+        const contentStart = lowerStart + 'Plan:'.length;
+        let contentEnd = block.length;
+        const sepPos = block.indexOf('---', contentStart);
+        if (sepPos !== -1 && sepPos < contentEnd) {
+          contentEnd = sepPos;
+        }
+        plan = block.substring(contentStart, contentEnd).trim();
+        plan = removeAsterisks(plan) || 'Not documented';
+      }
+    } else {
+      const contentStart = planStart + 'PLAN:'.length;
+      let contentEnd = block.length;
+      const sepPos = block.indexOf('---', contentStart);
+      if (sepPos !== -1 && sepPos < contentEnd) {
+        contentEnd = sepPos;
+      }
+      plan = block.substring(contentStart, contentEnd).trim();
+      plan = removeAsterisks(plan) || 'Not documented';
     }
-  });
+    
+    return {
+      date: dateStr,
+      rawDate: rawDateStr,
+      subjective: subjective || 'Not documented',
+      objective: objective || 'Not documented',
+      assessment: assessment || 'Not documented',
+      plan: plan || 'Not documented'
+    };
+  };
   
-  // If no notes found, try the old format (single SOAP note)
-  if (!result) {
-    // Fallback to original parsing for single notes
-    const subjectiveMatch = text.match(/SUBJECTIVE:\s*([\s\S]*?)(?=OBJECTIVE:|Objective:|$)/i);
-    const objectiveMatch = text.match(/OBJECTIVE:\s*([\s\S]*?)(?=ASSESSMENT:|Assessment:|$)/i);
-    const assessmentMatch = text.match(/ASSESSMENT:\s*([\s\S]*?)(?=PLAN:|Plan:|$)/i);
-    const planMatch = text.match(/PLAN:\s*([\s\S]*?)(?=\n\s*---|$)/i);
+  // Parse all notes
+  if (noteBlocks.length > 0) {
+    noteBlocks.forEach(block => {
+      if (block.trim()) {
+        allNotes.push(parseNote(block));
+      }
+    });
+  }
+  
+  // ===== FALLBACK: If no notes found, try single note format =====
+  if (allNotes.length === 0) {
+    const extractSectionFallback = (text, sectionName, alternateName, nextMarkers) => {
+      let startIndex = text.indexOf(sectionName);
+      if (startIndex === -1 && alternateName) {
+        startIndex = text.indexOf(alternateName);
+      }
+      if (startIndex === -1) return 'Not documented';
+      
+      const contentStart = startIndex + (text.indexOf(sectionName, startIndex) !== -1 ? sectionName : alternateName).length;
+      let contentEnd = text.length;
+      
+      for (const marker of nextMarkers) {
+        const pos = text.indexOf(marker, contentStart);
+        if (pos !== -1 && pos < contentEnd) {
+          contentEnd = pos;
+        }
+      }
+      
+      const content = text.substring(contentStart, contentEnd).trim();
+      return removeAsterisks(content) || 'Not documented';
+    };
     
-    const nameMatch = text.match(/SOAP Notes for ([^\n]+)/);
-    if (nameMatch) patientName = nameMatch[1].trim();
+    const subjective = extractSectionFallback(text, 'SUBJECTIVE:', 'Subjective:', ['OBJECTIVE:', 'Objective:', 'ASSESSMENT:', 'Assessment:', 'PLAN:', 'Plan:']);
+    const objective = extractSectionFallback(text, 'OBJECTIVE:', 'Objective:', ['ASSESSMENT:', 'Assessment:', 'PLAN:', 'Plan:']);
+    const assessment = extractSectionFallback(text, 'ASSESSMENT:', 'Assessment:', ['PLAN:', 'Plan:']);
     
-    const dateMatch = text.match(/📅 ([^\n]+)/);
+    let plan = 'Not documented';
+    const planStart = text.indexOf('PLAN:');
+    if (planStart === -1) {
+      const lowerStart = text.indexOf('Plan:');
+      if (lowerStart !== -1) {
+        const contentStart = lowerStart + 'Plan:'.length;
+        let contentEnd = text.length;
+        const sepPos = text.indexOf('---', contentStart);
+        if (sepPos !== -1 && sepPos < contentEnd) {
+          contentEnd = sepPos;
+        }
+        plan = text.substring(contentStart, contentEnd).trim();
+        plan = removeAsterisks(plan) || 'Not documented';
+      }
+    } else {
+      const contentStart = planStart + 'PLAN:'.length;
+      let contentEnd = text.length;
+      const sepPos = text.indexOf('---', contentStart);
+      if (sepPos !== -1 && sepPos < contentEnd) {
+        contentEnd = sepPos;
+      }
+      plan = text.substring(contentStart, contentEnd).trim();
+      plan = removeAsterisks(plan) || 'Not documented';
+    }
+    
+    // Extract date
+    const dateIndex = text.indexOf('📅 ');
     let dateStr = 'Unknown Date';
-    if (dateMatch) {
-      const rawDate = dateMatch[1].trim().replace(/\*\*/g, '').trim();
+    if (dateIndex !== -1) {
+      const start = dateIndex + '📅 '.length;
+      const end = text.indexOf('\n', start);
+      const rawDate = text.substring(start, end !== -1 ? end : text.length).trim();
+      const cleanDate = removeAsterisks(rawDate);
       try {
-        const date = new Date(rawDate);
+        const date = new Date(cleanDate);
         if (!isNaN(date.getTime())) {
           dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } else {
+          dateStr = cleanDate;
         }
-      } catch {}
+      } catch {
+        dateStr = cleanDate;
+      }
     }
     
-    const subjective = subjectiveMatch ? subjectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const objective = objectiveMatch ? objectiveMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const assessment = assessmentMatch ? assessmentMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    const plan = planMatch ? planMatch[1].trim().replace(/\*\*/g, '').trim() : 'Not documented';
-    
-    result = `
-      <div class="soap-note-premium">
-        <div class="soap-note-date">
-          <span class="soap-note-calendar-icon">📅</span>
-          <span class="soap-note-date-text">${dateStr}</span>
-        </div>
-        <div class="soap-note-body">
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">S</span>
-              <span class="soap-letter-content">${subjective}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">O</span>
-              <span class="soap-letter-content">${objective}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">A</span>
-              <span class="soap-letter-content">${assessment}</span>
-            </div>
-          </div>
-          <div class="soap-letter-group">
-            <div class="soap-letter-header">
-              <span class="soap-letter">P</span>
-              <span class="soap-letter-content">${formatPlanWithBullets(plan)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    allNotes.push({
+      date: dateStr,
+      rawDate: dateStr,
+      subjective: subjective || 'Not documented',
+      objective: objective || 'Not documented',
+      assessment: assessment || 'Not documented',
+      plan: plan || 'Not documented'
+    });
   }
   
-  // Wrap everything in the container
-  return `
-    <div class="soap-notes-container">
-      <div class="soap-notes-header">
-        <span class="soap-notes-header-icon">📝</span>
-        <span class="soap-notes-header-title">SOAP Notes${patientName ? ' for ' + patientName : ''}</span>
+  // ===== GROUP NOTES BY DATE =====
+  const groupedNotes = {};
+  allNotes.forEach(note => {
+    const key = note.date;
+    if (!groupedNotes[key]) {
+      groupedNotes[key] = [];
+    }
+    groupedNotes[key].push(note);
+  });
+  
+  const dates = Object.keys(groupedNotes);
+  
+  // ===== BUILD HTML - EACH DATE AS SEPARATE CARD =====
+let cardsHtml = '';
+
+dates.forEach((date, dateIndex) => {
+  const notes = groupedNotes[date];
+  
+  cardsHtml += `
+    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:16px 18px;margin-bottom:${dateIndex < dates.length - 1 ? '16px' : '0'};box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      
+      <!-- Date Header -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #F1F5F9;">
+        <span style="color:#2563EB;">${icons.calendarDays}</span>
+        <span style="font-size:14px;font-weight:600;color:#0F172A;">${date}</span>
       </div>
-      <div class="soap-notes-divider"></div>
-      ${result}
+      
+      ${notes.map((note, noteIndex) => `
+        <!-- Subjective -->
+        <div style="margin-bottom:${noteIndex < notes.length - 1 ? '16px' : '0'};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="color:#2563EB;font-weight:700;font-size:13px;">S</span>
+            </div>
+            <span style="font-weight:700;font-size:13px;color:#0F172A;">Subjective</span>
+          </div>
+          <div style="height:1px;background:#E5E7EB;margin:0 0 6px 0;"></div>
+          <div style="font-size:13px;color:#475569;line-height:1.6;padding-left:4px;">${note.subjective}</div>
+        </div>
+        
+        <!-- Objective -->
+        <div style="margin-top:12px;margin-bottom:${noteIndex < notes.length - 1 ? '16px' : '0'};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#EDE9FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="color:#7C3AED;font-weight:700;font-size:13px;">O</span>
+            </div>
+            <span style="font-weight:700;font-size:13px;color:#0F172A;">Objective</span>
+          </div>
+          <div style="height:1px;background:#E5E7EB;margin:0 0 6px 0;"></div>
+          <div style="font-size:13px;color:#475569;line-height:1.6;padding-left:4px;">${note.objective}</div>
+        </div>
+        
+        <!-- Assessment -->
+        <div style="margin-top:12px;margin-bottom:${noteIndex < notes.length - 1 ? '16px' : '0'};">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="color:#D97706;font-weight:700;font-size:13px;">A</span>
+            </div>
+            <span style="font-weight:700;font-size:13px;color:#0F172A;">Assessment</span>
+          </div>
+          <div style="height:1px;background:#E5E7EB;margin:0 0 6px 0;"></div>
+          <div style="font-size:13px;color:#475569;line-height:1.6;padding-left:4px;">${note.assessment}</div>
+        </div>
+        
+        <!-- Plan -->
+        <div style="margin-top:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="color:#059669;font-weight:700;font-size:13px;">P</span>
+            </div>
+            <span style="font-weight:700;font-size:13px;color:#0F172A;">Plan</span>
+          </div>
+          <div style="height:1px;background:#E5E7EB;margin:0 0 6px 0;"></div>
+          <div style="font-size:13px;color:#475569;line-height:1.6;padding-left:4px;">${formatPlanWithBullets(note.plan)}</div>
+        </div>
+      `).join('')}
+      
     </div>
   `;
-}
-
-// Helper function to format plan with bullet points
-function formatPlanWithBullets(text) {
-  if (!text || text === 'Not documented') return text;
-  
-  // Split by newlines and convert to bullet points if multiple items
-  const lines = text.split('\n').filter(line => line.trim());
-  if (lines.length === 1) return text;
-  
-  // Check if already has bullet points
-  if (lines.some(line => line.trim().startsWith('•') || line.trim().startsWith('-'))) {
-    return lines.map(line => {
-      const clean = line.replace(/^[•\-]\s*/, '').trim();
-      return `<div class="soap-plan-item">• ${clean}</div>`;
-    }).join('');
-  }
-  
-  // Convert to bullet points
-  return lines.map(line => 
-    `<div class="soap-plan-item">• ${line.trim()}</div>`
-  ).join('');
+});
+  // ===== WRAP EVERYTHING =====
+  return `
+    <div style="background:#FFFFFF;border-radius:16px;border:1px solid #E5E7EB;padding:16px 20px;margin:4px 0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <!-- Main Header -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #F1F5F9;">
+        <span style="color:#2563EB;">${icons.notebookPen}</span>
+        <span style="font-size:16px;font-weight:700;color:#0F172A;">SOAP Notes${patientName ? ' for ' + patientName : ''}</span>
+        <span style="margin-left:auto;font-size:11px;color:#94A3B8;background:#F1F5F9;padding:2px 10px;border-radius:10px;">${dates.length} note${dates.length > 1 ? 's' : ''}</span>
+      </div>
+      
+      ${cardsHtml}
+    </div>
+  `;
 }
 
 function formatPrescription(text) {
@@ -1797,15 +1947,6 @@ function formatClinicalAnalysisFromJSON(data) {
 // GLOBAL CLICK HANDLER FOR ANALYZE BUTTON
 // ========================================
 
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('.cta-btn');
-  if (btn && btn.classList.contains('cta-btn')) {
-    const patientName = btn.getAttribute('data-patient');
-    if (patientName && window.analyzePatient) {
-      console.log('🔍 Click detected on analyze button for:', patientName);
-      window.analyzePatient(patientName);
-    }
-  }
-});
+
 
 export { icons };
