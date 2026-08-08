@@ -5,6 +5,8 @@ from typing import List, Optional
 import uuid
 from ...db.database import get_db
 from ...models.patient import Patient
+from ...models.prescription import Prescription  # ← ADD THIS
+from ...models.soap_note import SOAPNote         # ← ADD THIS
 from ...api.dependencies.auth import get_current_user
 
 router = APIRouter()
@@ -119,6 +121,17 @@ async def get_patient(
         if not patient:
             raise HTTPException(status_code=404, detail="Patient not found")
         
+        # ✅ Count active prescriptions
+        rx_count = db.query(Prescription).filter(
+            Prescription.patient_id == patient.id,
+            Prescription.status == "active"
+        ).count()
+        
+        # ✅ Count SOAP notes
+        soap_count = db.query(SOAPNote).filter(
+            SOAPNote.patient_id == patient.id
+        ).count()
+        
         # Format analysis history for display
         analyses = []
         if patient.analysis_history:
@@ -144,7 +157,9 @@ async def get_patient(
             "conditions": patient.conditions,
             "medications": patient.medications,
             "image_analyses": analyses,
-            "total_analyses": len(analyses)
+            "total_analyses": len(analyses),
+            "rx_count": rx_count,      # ← ADD THIS
+            "soap_count": soap_count   # ← ADD THIS
         }
     except:
         raise HTTPException(status_code=404, detail="Patient not found")

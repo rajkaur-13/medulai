@@ -303,19 +303,27 @@ function App() {
       const patient = patients.find(p => p.name === patientName);
       if (!patient) {
         console.error('❌ Patient not found:', patientName);
+        setMessages(prev => [...prev, { 
+          id: Date.now().toString(), 
+          text: `❌ Patient "${patientName}" not found.`, 
+          isUser: false, 
+          timestamp: new Date() 
+        }]);
         return;
       }
       try {
         const result = await api.analyzePatient(token, patient.id);
         if (result && result.data) {
-          console.log('🔴 SENDING TO CHAT:', JSON.stringify(result));
+          console.log('🔴 SENDING TO CHAT:', result);
+          
+          // ✅ ONLY send the analysis result - NO patient snapshot here
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
             text: result,
             isUser: false, 
             timestamp: new Date() 
           }]);
-          console.log('✅ Message added to chat');
+          console.log('✅ Analysis message added to chat');
         } else if (result && result.reply) {
           setMessages(prev => [...prev, { 
             id: Date.now().toString(), 
@@ -343,52 +351,48 @@ function App() {
     };
   }, [handleDirectPatientSelect, setInput, sendChatMessage, token, currentPatient, setCurrentPatient, setPatientCache, setAllPatientNames, allPatientNames, patients, setMessages, api]);
 
-  // ===== FIXED: Auto-load patient into chat with typeof checks =====
-  useEffect(() => {
-    if (currentPatient && token) {
-      const lastMessage = messages[messages.length - 1];
-      
-      // ✅ Check if text is a string before using .includes()
-      const isPrescription = lastMessage && 
-        typeof lastMessage.text === 'string' &&
-        (lastMessage.text.includes('Prescription generated') || 
-         lastMessage.text.includes('Medication:'));
-      
-      const patientInfoExists = messages.some(msg => 
-        msg.text && typeof msg.text === 'string' && 
-        msg.text.includes(`Patient Selected: ${currentPatient.name}`)
-      );
-
-      if (!patientInfoExists && messages.length > 0 && !isPrescription) {
-        const fetchFullPatient = async () => {
-          try {
-            const fullDataMessage = `Show me ${currentPatient.name}`;
-            const data = await api.sendChatMessage(token, fullDataMessage);
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              text: data.reply,
-              isUser: false,
-              timestamp: new Date()
-            }]);
-          } catch (error) {
-            console.error('Error fetching patient data:', error);
-            const fallbackMessage = `✅ Patient Selected: ${currentPatient.name}
-📋 Demographics: MRN: ${currentPatient.mrn} | Age: ${currentPatient.age} | Gender: ${currentPatient.gender}
-
-How can I help you with ${currentPatient.name} today?`;
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              text: fallbackMessage,
-              isUser: false,
-              timestamp: new Date()
-            }]);
-          }
-        };
-        fetchFullPatient();
-      }
+  // ===== PATIENT SNAPSHOT WITH CORRECT COUNTS =====
+useEffect(() => {
+  if (!currentPatient || !token) return;
+  
+  // Check if snapshot already exists (using patient ID)
+  const snapshotExists = messages.some(msg => {
+    if (typeof msg.text !== 'string') return false;
+    try {
+      const parsed = JSON.parse(msg.text);
+      return parsed?.type === 'patient_selected' && parsed?.patient?.id === currentPatient.id;
+    } catch {
+      return false;
     }
-  }, [currentPatient, token, messages]);
+  });
 
+  if (!snapshotExists) {
+    const patientData = {
+      type: 'patient_selected',
+      patient: {
+        id: currentPatient.id,
+        name: currentPatient.name,
+        mrn: currentPatient.mrn,
+        age: currentPatient.age,
+        gender: currentPatient.gender,
+        allergies: currentPatient.allergies || [],
+        conditions: currentPatient.conditions || [],
+        medications: currentPatient.medications || [],
+        rx_count: currentPatient.rx_count || 0,
+        analysis_count: currentPatient.analysis_count || currentPatient.total_analyses || 0,
+        soap_count: currentPatient.soap_count || 0,
+        apt_count: currentPatient.apt_count || 0
+      }
+    };
+    
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      text: JSON.stringify(patientData),
+      isUser: false,
+      timestamp: new Date()
+    }]);
+  }
+}, [currentPatient, token]); // ← Only runs when patient changes
   // ===== HANDLE EDIT BUTTON CLICKS =====
   const handleEditClick = (section, reportId) => {
     console.log(`✏️ Edit clicked for section: ${section} (report: ${reportId})`);
