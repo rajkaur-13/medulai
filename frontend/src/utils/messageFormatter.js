@@ -53,12 +53,21 @@ if (!isUser && typeof text === 'object' && text !== null) {
       }
       
       // Check if it's patient data
-      if (data.type === 'patient_selected' || data.name) {
-        console.log('✅ Using JSON data for patient selection');
-        // Convert JSON to the format your existing function expects
-        const textFormat = `Patient Selected: ${data.name}\nDemographics: MRN: ${data.mrn || 'N/A'} | Age: ${data.age || 'N/A'} | Gender: ${data.gender || 'N/A'}\nMedical History: Allergies: ${data.allergies || 'None'} | Conditions: ${data.conditions || 'None'}\nCurrent Medications: ${(data.medications || []).join(', ') || 'None'}`;
-        return formatPatientSelected(textFormat);
-      }
+if (data.type === 'patient_selected' && data.patient) {
+  console.log('✅ Using JSON data for patient selection - DIRECT OBJECT');
+  console.log('📊 Patient data with counts:', data.patient);
+  
+  // ✅ Ensure counts are passed correctly
+  const patientWithCounts = {
+    ...data.patient,
+    rx_count: data.patient.rx_count || 0,
+    analysis_count: data.patient.analysis_count || data.patient.total_analyses || 0,
+    soap_count: data.patient.soap_count || 0,
+    apt_count: data.patient.apt_count || 0
+  };
+  
+  return formatPatientSelected(patientWithCounts);
+}
       
       // Check if it's a SOAP note
       if (data.type === 'soap_note' || data.subjective) {
@@ -320,114 +329,172 @@ const icons = {
 // PATIENT SELECTED - NEW CARD DESIGN
 // ========================================
 
-function formatPatientSelected(text) {
-  // ===== EXTRACT PATIENT DATA FROM TEXT =====
+
+function formatPatientSelected(input) {
   let patientName = 'Patient';
   let mrn = 'N/A', age = 'N/A', gender = 'N/A';
   let allergies = 'None', conditions = 'None';
   let medications = [];
-  let soapNotes = [];
-  let prescriptions = [];
-  let images = [];
-  let appointments = [];
-  
-  // Extract patient name
-  let nameMatch = text.match(/Patient Selected:\s*([^\n]+)/);
-  if (nameMatch) {
-    patientName = nameMatch[1].trim().replace(/\*\*/g, '');
-  }
-  
-  if (!nameMatch) {
-    nameMatch = text.match(/Patient Summary:\s*([^\n]+)/);
-    if (nameMatch) {
-      patientName = nameMatch[1].trim().replace(/\*\*/g, '');
-    }
-  }
-  
-  // Extract demographics
-  const demoMatch = text.match(/Demographics:\s*([^\n]+)/);
-  if (demoMatch) {
-    const parts = demoMatch[1].split('|').map(s => s.trim());
-    parts.forEach(part => {
-      if (part.includes('MRN:')) mrn = part.replace('MRN:', '').trim();
-      if (part.includes('Age:')) age = part.replace('Age:', '').trim();
-      if (part.includes('Gender:')) gender = part.replace('Gender:', '').trim();
-    });
-  }
-  
-  // Extract medical history
-  const historyMatch = text.match(/Medical History:\s*([^\n]+)/);
-  if (historyMatch) {
-    const historyText = historyMatch[1];
-    const allergyMatch = historyText.match(/Allergies:\s*([^|]+)/);
-    const conditionMatch = historyText.match(/Conditions:\s*([^|]+)/);
-    if (allergyMatch) allergies = allergyMatch[1].trim() || 'None';
-    if (conditionMatch) conditions = conditionMatch[1].trim() || 'None';
-  }
-  
-  // Extract medications
-  const medsMatch = text.match(/Current Medications:\s*([^\n]+)/);
-  if (medsMatch) {
-    const medsText = medsMatch[1].trim();
-    if (medsText !== 'None' && medsText !== '') {
-      medications = medsText.split(',').map(m => m.trim().replace(/\*\*/g, '').trim()).filter(m => m !== 'None' && m !== '');
-    }
-  }
-  
-  // Extract counts
-  let soapCount = 0, rxCount = 0, aptCount = 0, imgCount = 0;
-  
-  // SOAP notes count
-  if (text.includes('No SOAP notes') || text.includes('No SOAP notes yet')) {
-    soapCount = 0;
+  let rxCount = 0, soapCount = 0, imgCount = 0, aptCount = 0;
+
+  // ===== CHECK IF INPUT IS PATIENT OBJECT (FROM JSON) =====
+  if (typeof input === 'object' && input !== null && input.rx_count !== undefined) {
+    const p = input;
+    patientName = p.name || 'Patient';
+    mrn = p.mrn || 'N/A';
+    age = p.age || 'N/A';
+    gender = p.gender || 'N/A';
+    allergies = p.allergies || [];
+    conditions = p.conditions || [];
+    medications = p.medications || [];
+    
+    // ✅ USE DATABASE COUNTS DIRECTLY!
+    rxCount = p.rx_count || 0;
+    soapCount = p.soap_count || 0;
+    imgCount = p.analysis_count || 0;
+    aptCount = p.apt_count || 0;
   } else {
-    const soapSection = text.match(/SOAP Notes?\s*\((\d+)\)/i);
-    if (soapSection) {
-      soapCount = parseInt(soapSection[1]);
-    }
-    if (soapCount === 0) {
-      const soapContent = text.match(/Latest SOAP Note:\s*\n?\s*([^\n]+)/i);
-      if (soapContent && !soapContent[1].includes('No SOAP notes')) {
-        soapCount = 1;
+    // ===== FALLBACK: Parse from text using string methods (NO REGEX) =====
+    const text = input;
+    
+    // Extract patient name
+    let nameIndex = text.indexOf('Patient Selected:');
+    if (nameIndex === -1) nameIndex = text.indexOf('Patient Summary:');
+    if (nameIndex !== -1) {
+      const keyword = text.indexOf('Patient Selected:') !== -1 ? 'Patient Selected:' : 'Patient Summary:';
+      const start = nameIndex + keyword.length;
+      const end = text.indexOf('\n', start);
+      patientName = text.substring(start, end !== -1 ? end : text.length).trim();
+      // Remove ** markers
+      while (patientName.indexOf('**') !== -1) {
+        patientName = patientName.replace('**', '');
       }
     }
+    
+    // Extract demographics
+    const demoIndex = text.indexOf('Demographics:');
+    if (demoIndex !== -1) {
+      const start = demoIndex + 'Demographics:'.length;
+      const end = text.indexOf('\n', start);
+      const demoText = text.substring(start, end !== -1 ? end : text.length);
+      const parts = demoText.split('|').map(s => s.trim());
+      parts.forEach(part => {
+        if (part.indexOf('MRN:') !== -1) mrn = part.replace('MRN:', '').trim();
+        if (part.indexOf('Age:') !== -1) age = part.replace('Age:', '').trim();
+        if (part.indexOf('Gender:') !== -1) gender = part.replace('Gender:', '').trim();
+      });
+    }
+    
+    // Extract medical history
+    const historyIndex = text.indexOf('Medical History:');
+    if (historyIndex !== -1) {
+      const start = historyIndex + 'Medical History:'.length;
+      const end = text.indexOf('\n', start);
+      const historyText = text.substring(start, end !== -1 ? end : text.length);
+      const allergyIdx = historyText.indexOf('Allergies:');
+      const conditionIdx = historyText.indexOf('Conditions:');
+      if (allergyIdx !== -1) {
+        const aStart = allergyIdx + 'Allergies:'.length;
+        const aEnd = historyText.indexOf('|', aStart);
+        allergies = historyText.substring(aStart, aEnd !== -1 ? aEnd : historyText.length).trim();
+        if (allergies === '') allergies = 'None';
+      }
+      if (conditionIdx !== -1) {
+        const cStart = conditionIdx + 'Conditions:'.length;
+        const cEnd = historyText.indexOf('|', cStart);
+        conditions = historyText.substring(cStart, cEnd !== -1 ? cEnd : historyText.length).trim();
+        if (conditions === '') conditions = 'None';
+      }
+    }
+    
+    // Extract medications
+    const medsIndex = text.indexOf('Current Medications:');
+    if (medsIndex !== -1) {
+      const start = medsIndex + 'Current Medications:'.length;
+      const end = text.indexOf('\n', start);
+      const medsText = text.substring(start, end !== -1 ? end : text.length).trim();
+      if (medsText !== 'None' && medsText !== '') {
+        const medsList = medsText.split(',');
+        for (let i = 0; i < medsList.length; i++) {
+          let med = medsList[i].trim();
+          while (med.indexOf('**') !== -1) {
+            med = med.replace('**', '');
+          }
+          if (med !== 'None' && med !== '') {
+            medications.push(med);
+          }
+        }
+      }
+    }
+    
+    // ===== COUNT BULLET POINTS (NO REGEX) =====
+    function countBulletPointsInSection(text, sectionMarker) {
+      const sectionIndex = text.indexOf(sectionMarker);
+      if (sectionIndex === -1) return 0;
+      let startIndex = sectionIndex + sectionMarker.length;
+      let endIndex = text.length;
+      const nextMarkers = ['💊', '🩻', '📅', '✅', '📝'];
+      for (let i = 0; i < nextMarkers.length; i++) {
+        const pos = text.indexOf(nextMarkers[i], startIndex);
+        if (pos !== -1 && pos < endIndex) {
+          endIndex = pos;
+        }
+      }
+      const sectionContent = text.substring(startIndex, endIndex);
+      const lines = sectionContent.split('\n');
+      let count = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trim();
+        if (trimmed.indexOf('•') === 0) {
+          count++;
+        }
+      }
+      return count;
+    }
+    
+    function sectionHasContent(text, sectionMarker, emptyIndicator) {
+      const idx = text.indexOf(sectionMarker);
+      if (idx === -1) return false;
+      let start = idx + sectionMarker.length;
+      let end = text.length;
+      const markers = ['💊', '🩻', '📅', '✅'];
+      for (let i = 0; i < markers.length; i++) {
+        const pos = text.indexOf(markers[i], start);
+        if (pos !== -1 && pos < end) {
+          end = pos;
+        }
+      }
+      const content = text.substring(start, end);
+      return content.indexOf(emptyIndicator) === -1;
+    }
+    
+    rxCount = countBulletPointsInSection(text, '💊 Prescriptions:');
+    imgCount = countBulletPointsInSection(text, '🩻 Image Analyses:');
+    if (sectionHasContent(text, '📝 Latest SOAP Note:', 'No SOAP notes')) {
+      soapCount = 1;
+    }
+    aptCount = countBulletPointsInSection(text, '📅 Appointments:');
   }
+
+  // ===== BUILD THE CARD (SAME FOR BOTH CASES) =====
+  let allergyList = [];
+  let conditionList = [];
   
-  // Prescriptions count
-  const noRxMatch = text.match(/No prescriptions yet/i);
-  if (!noRxMatch) {
-    const rxSection = text.match(/Prescriptions?\s*\((\d+)\)/i);
-    if (rxSection) {
-      rxCount = parseInt(rxSection[1]);
+  if (Array.isArray(allergies)) {
+    allergyList = allergies;
+    conditionList = conditions;
+  } else {
+    if (allergies !== 'None' && allergies !== '') {
+      allergyList = allergies.split(',').map(a => a.trim()).filter(a => a !== '');
+    }
+    if (conditions !== 'None' && conditions !== '') {
+      conditionList = conditions.split(',').map(c => c.trim()).filter(c => c !== '');
     }
   }
   
-  // Appointments count
-  if (!text.includes('No appointments scheduled') && !text.includes('No upcoming appointments')) {
-    const aptSection = text.match(/Appointments?\s*\((\d+)\)/i);
-    if (aptSection) {
-      aptCount = parseInt(aptSection[1]);
-    }
-  }
-  
-  // Imaging reports count
-  const noImgMatch = text.match(/No images analyzed yet/i);
-  if (!noImgMatch) {
-    const imgSection = text.match(/Imaging Reports?\s*\((\d+)\)/i);
-    if (imgSection) {
-      imgCount = parseInt(imgSection[1]);
-    }
-  }
-  
-  // ===== BUILD THE NEW CARD WITH LUCIDE ICONS =====
-  const allergyList = allergies !== 'None' ? allergies.split(',').map(a => a.trim()).filter(a => a !== '') : [];
-  const conditionList = conditions !== 'None' ? conditions.split(',').map(c => c.trim()).filter(c => c !== '') : [];
-  
-  // Get first 3 medications
   const displayMeds = medications.slice(0, 3);
   const medMore = medications.length > 3 ? medications.length - 3 : 0;
-  
-  // Build the card
+
   let result = `
     <div class="premium-snapshot-card">
       <div class="snapshot-intro">
@@ -446,8 +513,8 @@ function formatPatientSelected(text) {
             <span class="avatar-initial">${patientName.charAt(0)}</span>
           </div>
           <div class="identity-info">
-            <div class="identity-name">${patientName.replace(/\*\*/g, '')}</div>
-            <div class="identity-meta">${mrn.replace(/\*\*/g, '')} • ${gender.replace(/\*\*/g, '')} • ${age.replace(/\*\*/g, '')} Years</div>
+            <div class="identity-name">${patientName}</div>
+            <div class="identity-meta">${mrn} • ${gender} • ${age} Years</div>
             <div class="identity-since">Patient Since ${new Date().getFullYear() - 1}</div>
           </div>
         </div>
@@ -490,7 +557,7 @@ function formatPatientSelected(text) {
             </div>
           </div>
           <div class="snapshot-section-items">
-            ${displayMeds.length > 0 ? displayMeds.map(m => `<div class="snapshot-section-item">• ${m.replace(/\*\*/g, '').trim()}</div>`).join('') : `<div class="snapshot-section-empty">No active medications</div>`}
+            ${displayMeds.length > 0 ? displayMeds.map(m => `<div class="snapshot-section-item">• ${m}</div>`).join('') : `<div class="snapshot-section-empty">No active medications</div>`}
           </div>
         </div>
         
