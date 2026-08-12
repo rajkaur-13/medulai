@@ -6,7 +6,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-border);
-  padding: 16px 32px;
+  padding: 12px 32px;
   position: fixed;
   top: 0;
   left: 0;
@@ -15,12 +15,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  overflow: hidden;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 14px;
 }
 
 .logo {
@@ -82,7 +86,7 @@
   display: flex;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 90px 24px 24px 24px;
+  padding: 80px 24px 24px 24px;
   gap: 24px;
   min-height: 100vh;
 }
@@ -107,13 +111,13 @@
 .panel-patient {
   width: 340px;
   flex-shrink: 0;
-  height: calc(100vh - 110px);
+  height: calc(100vh - 80px);
   overflow-y: auto;
 }
 
 .panel-chat {
   flex: 1;
-  height: calc(100vh - 110px);
+  height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
 }
@@ -121,7 +125,7 @@
 .panel-tools {
   width: 400px;
   flex-shrink: 0;
-  height: calc(100vh - 110px);
+  height: calc(100vh - 80px);
   overflow-y: auto;
 }
 

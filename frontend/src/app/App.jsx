@@ -1,3 +1,4 @@
+import { Bell, User, Stethoscope, Settings, LogOut } from 'lucide-react';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import './App.css';
 import "../styles/patients.css";
@@ -36,8 +37,8 @@ function App() {
     <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
       <span style="font-size: 18px; font-weight: 700; color: #111827;">
         👋 Welcome to 
-        <span style="background: linear-gradient(135deg, #2563EB, #7C3AED); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-          MediAgent!
+        <span style="background: linear-gradient(135deg, #296bd4, #30b9c0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          MedulAi!
         </span>
       </span>
     </div>
@@ -639,21 +640,75 @@ useEffect(() => {
     }
   };
 
-  return (
+ return (
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <span className="logo">🏥</span>
-          <span className="title">MediAgent</span>
-          <span className="badge">AI Medical Assistant</span>
+          <img 
+            src="/medulAI.png" 
+            alt="Logo" 
+            width="70" 
+            height="70" 
+            style={{ flexShrink: 0, display: 'block' }} 
+          />
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
+            <span style={{ 
+              color: '#0F172A', 
+              fontWeight: 700, 
+              fontSize: '24px',
+              letterSpacing: '-0.03em'
+            }}>Medul</span>
+            <span style={{ 
+              background: 'linear-gradient(135deg, #2563EB, #14B8A6)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 700,
+              fontSize: '24px',
+              letterSpacing: '-0.03em',
+              textShadow: '0 0 25px rgba(37, 99, 235, 0.25)'
+            }}>AI</span>
+          </span>
+          <span 
+            className="badge" 
+            style={{ 
+              color: '#000000',
+              background: 'transparent',
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: '4px 12px',
+              letterSpacing: '0.02em'
+            }}
+          >
+            Multi-Agent Clinical Intelligence
+          </span>
         </div>
         <div className="header-center">
-          <span className="doctor-info">👨‍⚕️ Dr. Sarah Wilson</span>
+          <span className="doctor-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #57595e, #bfd5d3)',
+              color: 'white'
+            }}>
+              <User size={16} strokeWidth={2.5} />
+            </span>
+            <span>Dr. Sarah Wilson</span>
+          </span>
         </div>
         <div className="header-right">
-          <button className="icon-btn">🔔</button>
-          <button className="icon-btn">⚙️</button>
-          <button className="icon-btn" onClick={handleLogout}>👤</button>
+          <button className="icon-btn" aria-label="Notifications">
+            <Bell size={20} />
+          </button>
+          <button className="icon-btn" aria-label="Settings">
+            <Settings size={20} />
+          </button>
+          <button className="icon-btn" onClick={handleLogout} aria-label="Logout">
+            <LogOut size={20} />
+          </button>
         </div>
       </header>
 
