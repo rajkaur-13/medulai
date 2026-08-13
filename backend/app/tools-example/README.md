@@ -1,6 +1,9 @@
+>⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
+>The actual implementation is maintained in the **private repository**.
 
-⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
-The actual implementation is maintained in the **private repository**.
+---
+
+```text
 tools/
 ├── init.py
 ├── patient_tools.py # Patient search, filtering, similarity
@@ -11,6 +14,7 @@ tools/
 ├── severity_analyzer.py # Clinical urgency assessment
 ├── similar_patients_tool.py # Patient similarity and retrieval
 └── vision_service.py # Vision service integration
+```
 
 ## File Descriptions
 
