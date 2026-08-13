@@ -14,6 +14,7 @@ The security module handles **authentication, authorization, and password manage
 
 ## 🔄 Security Flow
 
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │ User Login Request │
 │ (email + password) │
@@ -46,7 +47,7 @@ The security module handles **authentication, authorization, and password manage
 │ • Extract user information │
 └─────────────────────────────────────────────────────────────────┘
 
-
+```
 
 ---
 
