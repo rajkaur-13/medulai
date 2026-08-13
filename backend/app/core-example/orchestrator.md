@@ -14,48 +14,48 @@ The orchestrator is the **central brain** of MedulAI. It receives user messages,
 ## 🔄 High-Level Flow
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│ User Message │
-│ "Show me Asha Kujur" │
-└───────────────────────────┬─────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Orchestrator │
-│ │
-│ 1. Check Complex Queries → 2. Detect Intent → 3. Route │
-│ │
-└───────────────────────────┬─────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Intent Detection │
-│ │
-│ "search_patient" → Search patient by name │
-│ "generate_soap" → Create SOAP note │
-│ "view_prescriptions" → List prescriptions │
-│ "schedule_appointment" → Book appointment │
-│ "general" → Free-text response │
-└───────────────────────────┬─────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Tool/Agent Execution │
-│ │
-│ ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │
-│ │ Patient │ │ Clinical │ │ Appointment │ │
-│ │ Tools │ │ Tools │ │ Tools │ │
-│ └─────────────┘ └─────────────┘ └─────────────────────┘ │
-│ │
-└───────────────────────────┬─────────────────────────────────────┘
-│
-▼
-┌─────────────────────────────────────────────────────────────────┐
-│ Response Generation │
-│ │
-│ Format results → Add context → Return to user │
-│ │
-└─────────────────────────────────────────────────────────────────┘
+User Message
+    │
+    ▼
+┌─────────────────────────────────────┐
+│           Orchestrator              │
+│  1. Check Complex Queries           │
+│  2. Detect Intent                   │
+│  3. Route                           │
+└─────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────┐
+│          Intent Detection           │
+│                                     │
+│  search_patient      → Search by name
+│  generate_soap       → Create SOAP
+│  view_prescriptions  → List Rx
+│  schedule_appointment → Book apt
+│  general             → Free response
+└─────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────┐
+│       Tool/Agent Execution          │
+│                                     │
+│  ┌──────────┐  ┌──────────┐        │
+│  │ Patient  │  │ Clinical │        │
+│  │ Tools    │  │ Tools    │        │
+│  └──────────┘  └──────────┘        │
+│                                     │
+│  ┌──────────┐  ┌──────────┐        │
+│  │Appoint-  │  │ Imaging  │        │
+│  │ment Tools│  │ Tools    │        │
+│  └──────────┘  └──────────┘        │
+└─────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────┐
+│         Response Generation         │
+│                                     │
+│  Format → Add Context → Return      │
+└─────────────────────────────────────┘
 ```
 
 ---
