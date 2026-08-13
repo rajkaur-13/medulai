@@ -1,6 +1,8 @@
+>⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
+>The actual implementation is maintained in the **private repository**.
+---
 
-⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
-The actual implementation is maintained in the **private repository**.
+```text
 prompts/
 ├── init.py
 ├── system_prompts.py # System-level prompts for agents
@@ -13,6 +15,7 @@ prompts/
 ├── init.py
 ├── soap_template.py # SOAP note generation templates
 └── prescription_template.py # Prescription generation templates
+```
 
 ## Prompt Categories
 
