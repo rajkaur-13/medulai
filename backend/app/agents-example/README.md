@@ -45,6 +45,7 @@ langgraph_agent.py
 
 ## 🔄 Graph Flow
 
+```text
 User Message
     │
     ▼
@@ -66,6 +67,7 @@ User Message
 ┌──────────┐
 │ Response │  → Formats and returns final response
 └──────────┘
+```
 
 ---
 
