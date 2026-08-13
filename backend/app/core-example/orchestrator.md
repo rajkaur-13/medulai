@@ -13,6 +13,7 @@ The orchestrator is the **central brain** of MedulAI. It receives user messages,
 
 ## 🔄 High-Level Flow
 
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │ User Message │
 │ "Show me Asha Kujur" │
@@ -55,6 +56,7 @@ The orchestrator is the **central brain** of MedulAI. It receives user messages,
 │ Format results → Add context → Return to user │
 │ │
 └─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
