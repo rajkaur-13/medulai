@@ -1,6 +1,9 @@
+>⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
+>The actual implementation is maintained in the **private repository**.
 
-⚠️ **Note**: This directory contains the **code structure and architecture overview** only.  
-The actual implementation is maintained in the **private repository**.
+---
+
+```text
 services/
 ├── init.py
 ├── llm_service.py # LLM interaction and response generation
@@ -13,7 +16,7 @@ services/
 ├── redis_service.py # Session and cache management
 ├── local_storage.py # Local file storage
 └── init.py
-
+```
 
 
 ## File Descriptions
