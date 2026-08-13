@@ -5,7 +5,7 @@
 
 ## 📁 File: `langgraph_agent.py`
 
-\`\`\`
+```text
 langgraph_agent.py
 ├── AgentState (TypedDict)
 │   ├── messages: List[Dict[str, str]]
@@ -38,13 +38,11 @@ langgraph_agent.py
 └── Class: LangGraphOrchestrator
     ├── __init__(db, doctor_id)
     └── process_message(user_message) → response
-\`\`\`
 
 ---
 
 ## 🔄 Graph Flow
 
-\`\`\`
 User Message
     │
     ▼
@@ -66,7 +64,6 @@ User Message
 ┌──────────┐
 │ Response │  → Formats and returns final response
 └──────────┘
-\`\`\`
 
 ---
 
