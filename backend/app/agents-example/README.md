@@ -39,6 +39,8 @@ langgraph_agent.py
     ├── __init__(db, doctor_id)
     └── process_message(user_message) → response
 
+```bash
+
 ---
 
 ## 🔄 Graph Flow
