@@ -38,8 +38,8 @@ langgraph_agent.py
 └── Class: LangGraphOrchestrator
     ├── __init__(db, doctor_id)
     └── process_message(user_message) → response
+```
 
-```bash
 
 ---
 
