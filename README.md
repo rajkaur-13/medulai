@@ -1,852 +1,458 @@
+# 🏥 MedulAi
 
-# 🏥 MediAgent — Production AI Medical Assistant
-[![Tests](https://img.shields.io/badge/Tests-2_Passing-brightgreen)](reports/test_report.html)
-[![Coverage](https://img.shields.io/badge/Coverage-26%25-yellow)](reports/coverage/index.html)
-[![RAGAS Score](https://img.shields.io/badge/RAGAS_Answer_Relevancy-0.6679-blue)](evaluation/results/)
-[![Evaluation](https://img.shields.io/badge/Evaluation-RAGAS_Framework-purple)](evaluation/results/)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-mediagent--eta.vercel.app-1a73e8?style=for-the-badge&logo=vercel)](https://mediagent-eta.vercel.app)
-[![Backend API](https://img.shields.io/badge/Backend_API-mediagent--pn7o.onrender.com-1a73e8?style=for-the-badge&logo=render)](https://mediagent-pn7o.onrender.com)
-[![API Docs](https://img.shields.io/badge/API_Docs-Swagger-1a73e8?style=for-the-badge&logo=swagger)](https://mediagent-pn7o.onrender.com/docs)
+> **AI-Powered Clinical Assistant with Multi-Agent Orchestration**
 
-> **An AI-powered medical assistant that helps doctors manage clinical workflows through natural language conversation. Automates administrative tasks, clinical documentation, and patient management so doctors can focus on patient care instead of paperwork.**
+MedulAi is an AI-powered clinical assistant that brings intelligent automation into real clinical workflows. It uses multi-agent orchestration, patient-aware conversations, semantic retrieval, clinical documentation assistance, and multimodal medical image analysis to support doctors across their daily tasks—while keeping them hands-on and in control of patient management, appointments, prescriptions, and clinical decisions.
 
----
+[![Live Demo](https://img.shields.io/badge/Live_Demo-medulai--eta.vercel.app-1a73e8?style=for-the-badge&logo=vercel)](https://medulai-eta.vercel.app)
+[![Backend API](https://img.shields.io/badge/Backend_API-medulai--pn7o.onrender.com-1a73e8?style=for-the-badge&logo=render)](https://medulai-pn7o.onrender.com)
+[![API Docs](https://img.shields.io/badge/API_Docs-Swagger-1a73e8?style=for-the-badge&logo=swagger)](https://medulai-pn7o.onrender.com/docs)
+[![GitHub](https://img.shields.io/badge/GitHub-YourUsername-181717?style=for-the-badge&logo=github)](https://github.com/yourusername)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-YourProfile-0A66C2?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/yourprofile)
 
-## 📋 Table of Contents
-
-- [Why MediAgent?](#-why-mediagent)
-- [System Architecture](#-system-architecture)
-- [Data Flow](#-data-flow-how-a-request-is-processed)
-- [Agent Orchestrator](#-agent-orchestrator-the-brain)
-- [Database Schema](#-database-schema)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Supported Prompt Types](#-supported-prompt-types)
-- [CI/CD Pipeline](#-cicd-pipeline)
-- [Project Structure](#-project-structure)
-- [Quick Start](#-quick-start)
-- [Environment Variables](#-environment-variables)
-- [Performance Metrics](#-performance-metrics)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
+![MedulAi Demo](screenshots/demo.gif)
 
 ---
 
-## 🎯 Why MediAgent?
+## 🎯 Why MedulAi?
 
-Doctors spend **15+ hours per week** switching between multiple systems—EHR, scheduling, imaging, pharmacy. MediAgent eliminates this by providing a **single chat interface** where natural language requests trigger automated actions across all domains.
+Clinical workflows are often fragmented across systems for patient records, documentation, appointments, prescriptions, and medical imaging. MedulAi brings these workflows together in a single clinical interface, reducing context switching while keeping doctors hands-on.
 
-| Problem | Impact | MediAgent Solution |
-|---------|--------|-------------------|
-| 15+ hours/week on admin | Less time with patients | Natural language → automated actions |
-| 5+ systems to switch between | Wasted time, frustration | Single unified chat interface |
-| Manual documentation | Inefficient, error-prone | AI-powered SOAP note generation |
-| Delayed image analysis | Slower diagnosis | AI analyzes X-rays in seconds |
-| Complex scheduling | Double-booking, missed appointments | One-command appointment booking |
+Doctors can use natural language to access AI-powered tools for patient retrieval, clinical documentation, appointment scheduling, medical image analysis, and clinical workflows.
+
+MedulAi can also analyze available patient data—including medical history, allergies, chronic conditions, SOAP notes, prescriptions, laboratory results, imaging, and appointments—to summarize key findings, identify potential risks, and generate clinical insights and recommendations.
+
+MedulAi is designed to **assist, not replace, clinicians**. Doctors remain in control of reviewing information, managing patients, and making clinical decisions, while AI helps reduce repetitive work and surface relevant information when it adds value.
 
 ---
 
-## 📊 System Architecture
+## ✨ What It Does
 
-```mermaid
-graph TB
-    subgraph Presentation_Layer["PRESENTATION LAYER"]
-        subgraph Frontend["Frontend (Vercel)"]
-            A[React SPA]
-            B[Chat Interface]
-            C[Patient Context Panel]
-            D[Tools Panel]
-            E[Mobile Navigation]
-        end
-        F[Doctor / User]
-    end
+| Capability | Description |
+|------------|-------------|
+| 🔍 **Patient Search & Retrieval** | Search patients by name or MRN with fuzzy matching. View complete demographics, medical history, allergies, conditions, and visit history. |
+| 🧠 **Multi-Agent Clinical Reasoning** | LangGraph orchestrates specialized tools for patient retrieval, clinical documentation, appointments, prescriptions, and imaging. Intent detection routes requests to the right tool. |
+| 📝 **SOAP Note Generation** | Generate structured clinical documentation (Subjective, Objective, Assessment, Plan) from brief descriptions. View, edit, and track SOAP note history. |
+| 💊 **Prescription Management** | Create and manage prescriptions with AI assistance. Track all medications by date, dosage, and status. |
+| 📅 **Appointment Scheduling** | Schedule appointments using natural language ("Schedule follow-up for Asha Kujur next Tuesday"). View upcoming appointments and today's schedule. |
+| 🩻 **Medical Image Analysis** | Upload and analyze medical images using Gemini Vision. Supports X-Ray, CT, MRI, Ultrasound, Retina, ECG, Mammogram, Fluoroscopy, PET, and SPECT. AI generates structured findings, impression, and recommendations. Doctors can review, edit, and add clinical notes directly within the image analysis card in the chat interface. |
+| 📚 **Semantic Patient Retrieval** | ChromaDB-powered vector search using 384-dimensional embeddings. Find similar patients and retrieve relevant clinical context for AI responses. |
+| 💬 **Conversational Clinical Assistant** | Patient-aware chat interface where AI responses dynamically include current patient context. |
 
-    subgraph API_Gateway["API GATEWAY LAYER"]
-        G[Authentication JWT]
-        H[Rate Limiting 100 req/min]
-        I[Request Routing]
-        J[Audit Logging]
-    end
+---
 
-    subgraph Application_Layer["APPLICATION LAYER"]
-        subgraph Agent_Orchestrator["AGENT ORCHESTRATOR"]
-            K[Intent Detection Groq Llama 3.3]
-            L[Tool Router LangGraph]
-            M[Memory Management]
-            N[Context Management]
-        end
+## 🏗️ Architecture
 
-        subgraph Tools_Layer["TOOLS LAYER"]
-            subgraph Patient_Tools["Patient Tools"]
-                O1[search_patient]
-                O2[get_all_patients]
-                O3[search_by_condition]
-                O4[fuzzy_name_match]
-            end
-            subgraph SOAP_Tools["SOAP Tools"]
-                P1[generate_soap]
-                P2[get_soap_notes]
-                P3[analyze_soap]
-                P4[get_recommendations]
-            end
-            subgraph Appointment_Tools["Appointment Tools"]
-                Q1[schedule_appointment]
-                Q2[get_appointments]
-                Q3[get_available_slots]
-            end
-            subgraph Prescription_Tools["Prescription Tools"]
-                R1[generate_prescription]
-                R2[get_prescriptions]
-                R3[check_interactions]
-            end
-            subgraph Imaging_Tools["Imaging Tools"]
-                S1[analyze_xray]
-                S2[analyze_ct]
-                S3[analyze_mri]
-                S4[analyze_ecg]
-                S5[analyze_retinal]
-            end
-            subgraph Analytics_Tools["Analytics Tools"]
-                T1[severity_analyzer]
-                T2[similar_patients]
-                T3[without_soap]
-                T4[without_rx]
-                T5[without_appointments]
-            end
-        end
+MedulAi separates the user interface, clinical application logic, AI orchestration, specialized tools, and data services while keeping AI integrated into the existing clinical workflow.
 
-        subgraph Services_Layer["SERVICES LAYER"]
-            U[LLM Service Groq Llama 3.3]
-            V[Vision Service HuggingFace]
-            W[Vector Service ChromaDB]
-            X[Cache Service Redis]
-            Y[Storage Service B2 Cloud]
-        end
-    end
-
-    subgraph Data_Layer["DATA LAYER"]
-        Z[PostgreSQL Neon]
-        AA[ChromaDB Vector DB]
-        AB[Redis Cache]
-        AC[B2 Object Storage]
-    end
-
-    subgraph External_Services["EXTERNAL SERVICES"]
-        AD[Groq API Llama 3.3]
-        AE[HuggingFace Vision API]
-        AF[Pinecone Vector DB]
-        AG[Backblaze B2 Storage]
-    end
-
-    subgraph Monitoring["MONITORING AND OPS"]
-        AH[Prometheus Metrics]
-        AI[Grafana Dashboards]
-        AJ[ELK Stack Logs]
-        AK[Alert Manager]
-    end
-
-    subgraph CICD["CI/CD PIPELINE"]
-        AL[GitHub Actions]
-        AM[Run Tests pytest]
-        AN[Linting flake8 black]
-        AO[Build Application]
-        AP[Deploy Backend Render]
-        AQ[Deploy Frontend Vercel]
-    end
-
-    F --> A
-    A --> G
-    G --> H
-    H --> I
-    I --> J
-    J --> K
-    K --> L
-    L --> M
-    M --> N
-    
-    K --> O1
-    K --> O2
-    K --> O3
-    K --> O4
-    K --> P1
-    K --> P2
-    K --> P3
-    K --> P4
-    K --> Q1
-    K --> Q2
-    K --> Q3
-    K --> R1
-    K --> R2
-    K --> R3
-    K --> S1
-    K --> S2
-    K --> S3
-    K --> S4
-    K --> S5
-    K --> T1
-    K --> T2
-    K --> T3
-    K --> T4
-    K --> T5
-    
-    O1 --> W
-    O2 --> W
-    O3 --> W
-    O4 --> W
-    P1 --> X
-    P2 --> X
-    P3 --> X
-    P4 --> X
-    Q1 --> X
-    Q2 --> X
-    Q3 --> X
-    R1 --> X
-    R2 --> X
-    R3 --> X
-    S1 --> V
-    S2 --> V
-    S3 --> V
-    S4 --> V
-    S5 --> V
-    T1 --> U
-    T2 --> W
-    T3 --> U
-    T4 --> U
-    T5 --> U
-    
-    K --> U
-    K --> W
-    K --> X
-    K --> Y
-    
-    U --> AD
-    V --> AE
-    W --> AA
-    W --> AF
-    X --> AB
-    Y --> AC
-    Y --> AG
-    
-    O1 --> Z
-    O2 --> Z
-    O3 --> Z
-    O4 --> Z
-    P1 --> Z
-    P2 --> Z
-    P3 --> Z
-    P4 --> Z
-    Q1 --> Z
-    Q2 --> Z
-    Q3 --> Z
-    R1 --> Z
-    R2 --> Z
-    R3 --> Z
-    S1 --> Z
-    S2 --> Z
-    S3 --> Z
-    S4 --> Z
-    S5 --> Z
-    T1 --> Z
-    T2 --> Z
-    T3 --> Z
-    T4 --> Z
-    T5 --> Z
-    
-    Z --> AH
-    AA --> AH
-    AB --> AH
-    AC --> AH
-    AH --> AI
-    AH --> AJ
-    AH --> AK
-    
-    AL --> AM
-    AM --> AN
-    AN --> AO
-    AO --> AP
-    AO --> AQ
+```text
+                         ┌──────────────────────┐
+                         │       React UI       │
+                         │        Vercel        │
+                         └──────────┬───────────┘
+                                    │
+                              REST API / JWT
+                                    │
+                         ┌──────────▼───────────┐
+                         │       FastAPI        │
+                         │        Render        │
+                         └──────────┬───────────┘
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │      LangGraph Orchestrator   │
+                    │   Intent Detection & Routing  │
+                    │      Context Management       │
+                    └───────────────┬───────────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+       Patient Tools          Clinical Tools        Imaging Tools
+       • Search/Retrieve      • SOAP Notes          • Image Analysis
+       • Patient Context      • Prescriptions       • Report Generation
+                              • Appointments
+              │                     │                     │
+              └─────────────────────┼─────────────────────┘
+                                    │
+                ┌───────────────────┼───────────────────┐
+                │                   │                   │
+         ┌──────▼──────┐     ┌──────▼──────┐     ┌──────▼──────┐
+         │ PostgreSQL  │     │  ChromaDB   │     │ AI Services │
+         │             │     │             │     │             │
+         │ Clinical    │     │ Semantic    │     │ Groq        │
+         │ Data        │     │ Retrieval   │     │ Llama 3.3   │
+         │             │     │             │     │             │
+         │ SOAP Notes  │     │ 384-dim     │     │ Gemini      │
+         │ Prescriptions│    │ embeddings  │     │ Vision      │
+         │ Appointments│     │             │     │             │
+         └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
 ---
 
-## 🔄 Data Flow: How a Request is Processed
+## 🔍 Semantic Patient Retrieval
 
-```mermaid
-sequenceDiagram
-    participant D as Doctor
-    participant F as Frontend React
-    participant G as API Gateway
-    participant O as Orchestrator
-    participant L as LLM Groq
-    participant T as Tools
-    participant DB as Database
-    participant V as Vision API
-    participant C as Cache
+MedulAi uses **ChromaDB** for semantic retrieval of patient information. Patient data is converted into **384-dimensional embeddings** using `all-MiniLM-L6-v2` and stored in ChromaDB, allowing the system to find relevant patients and clinical context based on semantic similarity rather than exact keyword matches.
 
-    D->>F: "Show me patients with diabetes"
-    F->>G: POST /api/chat
-    G->>G: Validate JWT
-    G->>G: Check Rate Limit
-    G->>O: process_message()
-    O->>L: Detect intent
-    L-->>O: action: search_by_condition
-    O->>C: Check cache
-    C-->>O: Cache miss
-    O->>T: search_by_condition("diabetes")
-    T->>DB: Query patients
-    DB-->>T: Sarah Johnson, Michael Chen
-    T->>C: Cache results
-    T-->>O: Patient list
-    O->>O: Format response
-    O->>G: JSON response
-    G->>F: 200 OK
-    F->>D: Display clickable names
-
-    D->>F: Click "Sarah Johnson"
-    F->>G: POST /api/chat
-    G->>O: process_message()
-    O->>L: Detect intent
-    L-->>O: action: search_patient
-    O->>T: search_patient("Sarah Johnson")
-    T->>DB: Get patient records
-    DB-->>T: Patient + SOAP + RX + Appointments
-    T-->>O: Complete patient data
-    O->>O: Format patient context
-    O->>G: JSON response
-    G->>F: 200 OK
-    F->>D: Display patient in sidebar
-
-    D->>F: "Generate SOAP note for Sarah"
-    F->>G: POST /api/chat
-    G->>O: process_message()
-    O->>L: Detect intent
-    L-->>O: action: generate_soap
-    O->>T: generate_soap("Sarah")
-    T->>T: Extract SOAP content
-    T->>T: Analyze for recommendations
-    T->>DB: Insert SOAP note
-    DB-->>T: SOAP created
-    T-->>O: Success + Recommendations
-    O->>O: Format response
-    O->>G: JSON response
-    G->>F: 200 OK
-    F->>D: Display SOAP note saved
-
-    D->>F: "Upload X-ray"
-    F->>G: POST /api/xray/analyze
-    G->>O: analyze_xray(image)
-    O->>T: analyze_xray(image)
-    T->>V: Analyze image
-    V-->>T: finding Normal, confidence 0.94
-    T->>DB: Save image analysis
-    DB-->>T: Image saved
-    T-->>O: Analysis result
-    O->>O: Format result
-    O->>G: JSON response
-    G->>F: 200 OK
-    F->>D: Display analysis
+```text
+Patient Data
+     ↓
+all-MiniLM-L6-v2
+     ↓
+384-dimensional embeddings
+     ↓
+ChromaDB
+     ↓
+Semantic Similarity Search
+     ↓
+Similar Patients / Relevant Context
+     ↓
+LLM
+     ↓
+Context-Aware Response
 ```
+
+### Integration Points
+
+| Component | Purpose |
+|-----------|---------|
+| **Patient Search** | Find patients by name, condition, or clinical description |
+| **Similar Patients** | Retrieve comparable cases for clinical reference |
+| **Context Injection** | Relevant patient data passed to LLM for patient-aware responses |
 
 ---
 
-## 🧠 Agent Orchestrator: The Brain
+## 🩻 Medical Image Analysis
 
-```mermaid
-graph TD
-    subgraph Orchestrator["Orchestrator"]
-        A[User Input] --> B[Preprocessing]
-        B --> C[Context Manager]
-        C --> D[Intent Classifier]
-        D --> E[LLM Decision Engine]
-        
-        E -->|search_patient| F[Patient Tool Executor]
-        E -->|generate_soap| G[SOAP Tool Executor]
-        E -->|schedule_appointment| H[Appointment Tool Executor]
-        E -->|generate_prescription| I[Prescription Tool Executor]
-        E -->|analyze_image| J[Image Tool Executor]
-        E -->|complex_query| K[Complex Query Handler]
-        E -->|general| L[General Chat Handler]
-        
-        F --> M[Result Aggregator]
-        G --> M
-        H --> M
-        I --> M
-        J --> M
-        K --> M
-        L --> M
-        
-        M --> N[Response Formatter]
-        N --> O[Output Generator]
-        
-        subgraph Memory["Memory"]
-            P[Conversation History]
-            Q[Patient Context]
-            R[Session State]
-        end
-        
-        C --> P
-        C --> Q
-        C --> R
-    end
+MedulAi integrates **Google Gemini Vision** to assist doctors with medical image analysis. Doctors can upload an image, receive a structured AI-generated report, review and edit the results, add clinical notes, and save the finalized analysis to the patient's record.
+
+```text
+Medical Image Upload
+        ↓
+Gemini Vision Analysis
+        ↓
+Structured AI Report
+        ↓
+┌──────────────────────────────┐
+│ • Findings                   │
+│ • Impression                 │
+│ • Recommendations            │
+└──────────────────────────────┘
+        ↓
+Doctor Review & Edit
+        ↓
+Clinical Notes
+        ↓
+Save to Patient Record
 ```
 
----
+### Supported Image Types
 
-## 🗄️ Database Schema
+| Modality | Examples |
+|----------|----------|
+| **X-Ray** | Chest, bone, dental |
+| **CT** | Cross-sectional imaging |
+| **MRI** | Brain, spine, soft tissue |
+| **Ultrasound** | Abdominal, obstetric, cardiac |
+| **Retina** | Retinal imaging |
+| **ECG** | Electrocardiogram images |
+| **Mammogram** | Breast imaging |
+| **Fluoroscopy** | Fluoroscopic images |
+| **PET** | PET imaging |
+| **SPECT** | SPECT imaging |
 
-```sql
--- Patients (Core Entity)
-CREATE TABLE patients (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    mrn VARCHAR(50) UNIQUE NOT NULL,
-    age INTEGER,
-    gender VARCHAR(10),
-    phone VARCHAR(20),
-    email VARCHAR(255),
-    allergies TEXT[],
-    conditions TEXT[],
-    medications TEXT[],
-    created_at TIMESTAMP DEFAULT NOW()
-);
+### Analysis Output
 
--- SOAP Notes (Clinical Documentation)
-CREATE TABLE soap_notes (
-    id UUID PRIMARY KEY,
-    patient_id UUID REFERENCES patients(id),
-    doctor_id UUID REFERENCES users(id),
-    subjective TEXT,
-    objective TEXT,
-    assessment TEXT,
-    plan TEXT,
-    visit_date TIMESTAMP DEFAULT NOW()
-);
+The AI generates a structured report containing:
 
--- Appointments (Scheduling)
-CREATE TABLE appointments (
-    id UUID PRIMARY KEY,
-    patient_id UUID REFERENCES patients(id),
-    doctor_id UUID REFERENCES users(id),
-    date DATE NOT NULL,
-    time TIME NOT NULL,
-    reason TEXT,
-    status VARCHAR(20) DEFAULT 'scheduled',
-    created_at TIMESTAMP DEFAULT NOW()
-);
+| Field | Description |
+|-------|-------------|
+| **Findings** | Key observations identified from the image |
+| **Impression** | Summary of the analyzed findings |
+| **Recommendations** | AI-generated suggestions for further clinical consideration |
 
--- Prescriptions (Medication Orders)
-CREATE TABLE prescriptions (
-    id UUID PRIMARY KEY,
-    patient_id UUID REFERENCES patients(id),
-    doctor_id UUID REFERENCES users(id),
-    medication VARCHAR(255),
-    dosage VARCHAR(50),
-    frequency VARCHAR(50),
-    duration VARCHAR(50),
-    instructions TEXT,
-    status VARCHAR(20) DEFAULT 'active',
-    prescribed_date TIMESTAMP DEFAULT NOW()
-);
+### Doctor-in-the-Loop Workflow
 
--- Images (Medical Imaging)
-CREATE TABLE images (
-    id UUID PRIMARY KEY,
-    patient_id UUID REFERENCES patients(id),
-    image_type VARCHAR(50),  -- X-Ray, CT, MRI, ECG, Retinal
-    filename VARCHAR(255),
-    analysis TEXT,
-    confidence FLOAT,
-    uploaded_at TIMESTAMP DEFAULT NOW()
-);
-```
+MedulAi keeps the doctor involved in the final clinical workflow. After AI analysis, doctors can:
+
+- 📝 Review the generated findings and impression
+- ✏️ Edit the AI-generated report
+- 📋 Add their own clinical notes
+- 💾 Save the finalized analysis to the patient's record
 
 ---
-
-
-## 🚀 Features
-
-### 🤖 Chat Interface
-- Natural language understanding
-- Agentic AI orchestration with LangGraph
-- Multi-turn conversations with context
-- Intent detection and tool routing
-- Clickable patient names in chat
-
-### 🔍 Patient Management
-- Search by name, MRN, or condition
-- Fuzzy name matching for typos
-- Vector search with ChromaDB
-- Complete medical history: allergies, conditions, medications
-- Add new patients
-
-### 📝 SOAP Notes
-- Generate via chat or form
-- AI-powered analysis and recommendations
-- Clinical decision support
-- Risk detection and alerts
-- Structured storage with JSONB
-- View latest and historical notes
-- Find patients without SOAP notes
-
-### 💊 Prescriptions
-- Generate medication orders
-- View active prescriptions
-- Find patients without prescriptions
-- Prescription history tracking
-
-### 📅 Appointments
-- Schedule via chat or form
-- Relative dates (today, tomorrow, next week)
-- View upcoming appointments
-- Find patients without appointments
-
-### 🩻 Medical Imaging
-- 5 image types: X-Ray, CT, MRI, ECG, Retinal
-- AI-powered analysis with HuggingFace
-- Confidence scoring
-- Upload and view images
-- Find patients without imaging
-
-### 📊 Clinical Decision Support
-- SOAP note analysis
-- Treatment recommendations
-- Risk assessment
-- Drug interaction checking
-- Follow-up planning
-- Severity analysis
-
----
-
-
-# 🧪 RAGAS Evaluation (LLM Performance)
-
-> **Why this matters:** Traditional tests check if code runs. RAGAS measures if the AI gives **correct and relevant answers** - the industry standard for production AI systems.
-
-### 📊 Current Scores
-
-| Metric | Score | Meaning |
-|--------|-------|---------|
-| **Answer Relevancy** | **0.6679 (66.8%)** | ✅ Answers are directly relevant to user questions |
-| Faithfulness | ⏳ Running | Needs Groq quota reset |
-| Context Precision | ⏳ Running | Needs Groq quota reset |
-| Context Recall | ⏳ Running | Needs Groq quota reset |
-
-### 🎯 Benchmark Comparison
-
-| System | Answer Relevancy | Source |
-|--------|------------------|--------|
-| **MediAgent V2** | **0.6679** | ✅ This project |
-| Industry Baseline | 0.50 | RAGAS Average |
-| Best-in-Class | 0.75+ | Enterprise RAG Systems |
-
-### 📈 Score Interpretation
-
-| Score Range | Meaning |
-|-------------|---------|
-| 0.0 - 0.3 | Poor - Answers don't match questions |
-| 0.3 - 0.5 | Average - Somewhat relevant |
-| 0.5 - 0.7 | Good - Generally relevant |
-| 0.7 - 1.0 | Excellent - Highly relevant |
-
-**Our Score: 0.6679 → Good (Above Industry Average)**
-
-### 🔧 How to Improve the Score
-
-| Improvement | Expected Score |
-|-------------|----------------|
-| Better patient name matching | 0.70+ |
-| More helpful error messages | 0.75+ |
-| Add real patient context | 0.80+ |
-
-### 📊 Run Evaluation Yourself
-
-```bash
-# Install evaluation dependencies
-pip install -r evaluation/requirements.txt
-
-# Run RAGAS evaluation
-export $(cat evaluation/.env | xargs) && python evaluation/scripts/evaluate.py
-
-# Expected output:
-# ✅ answer_relevancy: 0.6679 (66.8%)
-```
-
-### 📂 Results
-
-Results are saved in `evaluation/results/`:
-- `evaluation_results.csv` - Raw scores per query
-- `evaluation_results.json` - Structured evaluation data
-
-### 🏆 Skills Demonstrated
-
-| Skill | Proved By |
-|-------|-----------|
-| Building RAG Systems | ✅ MediAgent Architecture |
-| LLM Integration | ✅ Groq + HuggingFace |
-| Production Deployment | ✅ Vercel + Render |
-| **AI Evaluation** | ✅ **RAGAS Framework** |
-| Performance Metrics | ✅ Answer Relevancy Score |
-| Code Quality | ✅ 85% Coverage |
-
-> *"I don't just build AI—I **measure** it. This project includes industry-standard RAGAS evaluation to prove the system actually works."*
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | React 18, TypeScript | UI components, state management |
-| **Backend** | FastAPI, Python 3.11 | REST APIs, business logic |
-| **Database** | PostgreSQL (Neon) | ACID-compliant data storage |
-| **Vector DB** | ChromaDB | Semantic search, embeddings |
-| **Cache** | Redis (Upstash) | Session management, rate limiting |
-| **LLM** | Groq (Llama 3.3 70B) | Intent detection, responses |
-| **Vision** | HuggingFace (ResNet-50) | Image analysis |
-| **Agent Framework** | LangGraph | Multi-agent orchestration |
-| **Auth** | JWT | Authentication and authorization |
-| **Deployment** | Vercel (frontend), Render (backend) | Cloud hosting |
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React, CSS Modules, Lucide Icons |
+| **Backend** | Python, FastAPI |
+| **Orchestration** | LangGraph |
+| **LLM** | Groq — Llama 3.3 70B |
+| **Multimodal AI** | Google Gemini |
+| **Database** | PostgreSQL |
+| **Vector Store** | ChromaDB |
+| **Embeddings** | all-MiniLM-L6-v2 |
+| **Cache** | Redis |
+| **Storage** | Backblaze B2 |
+| **Authentication** | JWT, RBAC |
+| **Evaluation** | RAGAS |
+| **Deployment** | Docker, Vercel, Render |
+| **CI/CD** | GitHub Actions |
 
 ---
 
-## 📋 Supported Prompt Types
+## 📊 Evaluation
 
-| Category | Command | Example |
-|----------|---------|---------|
-| **Patient** | Show me [name] | "Show me Sarah Johnson" |
-| **All Patients** | Show all patients | "Show all patients" |
-| **By Condition** | Show me patients with [condition] | "Show me patients with diabetes" |
-| **By Medication** | Show me patients on [medication] | "Show me patients on Metformin" |
-| **SOAP** | Generate SOAP note for [name] | "Generate SOAP note for Sarah" |
-| **Appointment** | Schedule appointment for [name] | "Schedule appointment for Sarah next week" |
-| **Prescription** | Write prescription for [name] | "Write prescription for Sarah" |
-| **Imaging** | Show me X-rays for [name] | "Show me X-rays for Sarah" |
-| **Without** | Show me patients without [item] | "Show me patients without SOAP notes" |
-| **Search** | Search for [term] | "Search for hypertension" |
-| **Similar** | Find similar patients to [name] | "Find similar patients to Sarah" |
+MedulAi includes an automated evaluation pipeline using **RAGAS** to assess the quality of AI-generated responses. The pipeline runs predefined clinical test scenarios and evaluates metrics such as answer relevancy, context precision, and faithfulness.
 
----
-
-## 🔄 CI/CD Pipeline
-
-```mermaid
-graph LR
-    A[Push to GitHub] --> B[GitHub Actions]
-    B --> C[Run Tests pytest]
-    C --> D[Run Linting flake8 black]
-    D --> E[Build Application]
-    E --> F[Deploy Backend to Render]
-    E --> G[Deploy Frontend to Vercel]
-    F --> H[Run Health Checks]
-    G --> I[Run Smoke Tests]
+```text
+Clinical Test Scenarios
+          ↓
+     LLM Responses
+          ↓
+    RAGAS Evaluation
+          ↓
+┌─────────────────────────────┐
+│ • Answer Relevancy          │
+│ • Context Precision         │
+│ • Faithfulness              │
+└─────────────────────────────┘
+          ↓
+    Evaluation Results
 ```
+
+### Current Metrics
+
+| Metric | Result |
+|--------|--------|
+| **Answer Relevancy** | 0.6679 |
+| **Context Precision** | Under evaluation |
+| **Faithfulness** | Under evaluation |
+| **Test Coverage** | 26% |
+
+### Test Scenarios
+
+The evaluation pipeline uses predefined clinical scenarios covering different MedulAi workflows:
+
+| Scenario | Example Query |
+|----------|---------------|
+| **Patient Search** | "Find patient with last name Smith" |
+| **Appointments** | "Show me upcoming appointments for today" |
+| **SOAP Notes** | "Generate SOAP note for patient with hypertension" |
+| **Scheduling** | "Schedule appointment for patient Brown with Dr. Patel" |
+| **Medications** | "What medications is patient Johnson currently taking?" |
+
+### Evaluation Workflow
+
+1. **Test Dataset** — Predefined clinical queries and expected context
+2. **Response Collection** — Generate and capture LLM responses
+3. **Metric Calculation** — RAGAS evaluates response quality
+4. **Result Storage** — Evaluation results are stored for tracking and comparison
+
+### Evaluation Files
+
+| File | Purpose |
+|------|---------|
+| `evaluation/data/test_dataset.json` | Clinical test scenarios |
+| `evaluation/scripts/evaluate.py` | Evaluation pipeline |
+| `evaluation/results/evaluation_results.json` | Stored evaluation results |
+
+> These results are intended to track system quality during development and **do not represent clinical validation or medical accuracy**.
+
+---
+
+## ⚡ Performance
+
+| Metric | Value |
+|--------|-------|
+| **API Latency** | ~1.8s p95 |
+| **Database Query** | ~35ms |
+| **Vector Retrieval** | ~65ms |
+
+> Performance figures are based on measurements from the current development environment and workload.
 
 ---
 
 ## 📁 Project Structure
 
-```
-mediagent-v2/
+```text
+MedulAi/
 ├── backend/
-│   ├── app/
-│   │   ├── api/                    # API endpoints
-│   │   │   ├── routes/
-│   │   │   │   ├── chat.py         # Main chat endpoint
-│   │   │   │   ├── patients.py     # Patient CRUD
-│   │   │   │   ├── appointments.py # Appointment CRUD
-│   │   │   │   ├── soap.py         # SOAP note CRUD
-│   │   │   │   ├── prescriptions.py# Prescription CRUD
-│   │   │   │   ├── xray.py         # X-Ray analysis
-│   │   │   │   ├── auth.py         # Authentication
-│   │   │   │   └── images.py       # Image upload/analysis
-│   │   │   └── dependencies/
-│   │   │       ├── auth.py         # JWT validation
-│   │   │       └── db.py           # Database session
-│   │   ├── core/
-│   │   │   ├── orchestrator.py     # Agent orchestration
-│   │   │   ├── prompts.py          # LLM prompts
-│   │   │   └── security.py         # JWT, password hashing
-│   │   ├── tools/
-│   │   │   ├── patient_tools.py    # Patient operations
-│   │   │   ├── soap_tools.py       # SOAP note operations
-│   │   │   ├── appointment_tools.py# Appointment operations
-│   │   │   ├── prescription_tools.py# Prescription operations
-│   │   │   ├── xray_tools.py       # X-Ray analysis
-│   │   │   └── vision_tools.py     # Vision model integration
-│   │   ├── models/
-│   │   │   ├── patient.py          # Patient model
-│   │   │   ├── soap_note.py        # SOAP note model
-│   │   │   ├── appointment.py      # Appointment model
-│   │   │   ├── prescription.py     # Prescription model
-│   │   │   ├── image.py            # Image model
-│   │   │   └── user.py             # User model
-│   │   ├── services/
-│   │   │   ├── llm_service.py      # Groq LLM integration
-│   │   │   ├── vision_service.py   # HuggingFace integration
-│   │   │   ├── chroma_service.py   # Vector search
-│   │   │   └── redis_service.py    # Caching
-│   │   └── db/
-│   │       └── database.py         # Database connection
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── render.yaml
+│   └── app/
+│       ├── agents/         # LangGraph orchestration
+│       ├── api/            # FastAPI routes
+│       ├── core/           # Configuration, prompts, security
+│       ├── models/         # SQLAlchemy database models
+│       ├── services/       # LLM, Vision, Vector, Storage, Cache
+│       └── tools/          # Specialized clinical tools
 │
 ├── frontend/
-│   ├── src/
-│   │   ├── App.js                  # Main React component
-│   │   ├── components/
-│   │   │   ├── XRayAnalyzer.js     # Image upload/analysis
-│   │   │   ├── AnalyzeButton.js    # Patient analysis
-│   │   │   └── ...                 # Other components
-│   │   ├── App.css                 # Styling
-│   │   └── index.js                # Entry point
-│   ├── package.json
-│   └── vercel.json
+│   └── src/
+│       ├── app/            # Application entry and main UI
+│       ├── features/       # Patient, chat, SOAP, imaging, etc.
+│       ├── services/       # API communication
+│       └── styles/         # Application styles
 │
-├── .github/
-│   └── workflows/
-│       └── deploy.yml              # CI/CD pipeline
-│
+├── evaluation/             # RAGAS evaluation pipeline
+├── tests/                  # Automated tests
 ├── docker-compose.yml
-├── README.md
-└── render.yaml
+└── README.md
 ```
+
+### Key Directories
+
+| Directory | Purpose |
+|-----------|---------|
+| `backend/app/agents/` | LangGraph orchestration and agent workflows |
+| `backend/app/api/` | FastAPI API routes |
+| `backend/app/core/` | Configuration, prompts, and security |
+| `backend/app/models/` | SQLAlchemy database models |
+| `backend/app/services/` | LLM, Vision, Vector, Storage, and Cache services |
+| `backend/app/tools/` | Specialized clinical tools used by the orchestrator |
+| `frontend/src/features/` | Feature-based React modules |
+| `frontend/src/services/` | Frontend API communication |
+| `evaluation/` | RAGAS evaluation pipeline and results |
+| `tests/` | Automated test suite |
 
 ---
 
-## 🏁 Quick Start
+## 🚀 Getting Started
 
-### Backend Setup
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Docker & Docker Compose
+- PostgreSQL database
+- Required API keys for AI features
+
+### Using Docker
+
+Clone the repository:
 
 ```bash
-cd backend
-conda create -n mediagent python=3.11
-conda activate mediagent
-pip install -r requirements.txt
-cp .env.example .env
-# Fill in your API keys
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+git clone https://github.com/yourusername/medulai.git
+cd medulai
 ```
 
-### Frontend Setup
+Create a `.env` file in the project root and add your database credentials and API keys.
 
+Start the application:
+
+```bash
+docker-compose up --build
+```
+
+Docker Compose starts:
+- **Frontend** — React application at http://localhost:3000
+- **Backend** — FastAPI API at http://localhost:8000
+- **Redis** — Redis cache on port 6379
+
+Once running:
+- Application: http://localhost:3000
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+### Manual Setup
+
+**Backend:**
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-### Login Credentials
-
-| Field | Value |
-|-------|-------|
-| **Email** | doctor@mediagent.com |
-| **Password** | password123 |
-
 ---
 
 ## 🔐 Environment Variables
 
-Create a `.env` file in the backend directory:
+Create a `.env` file in the project root with the following variables:
 
 ```env
-# Database
-DATABASE_URL=postgresql://[username]:[password]@[host]:[port]/[database_name]
+# ====================
+# REQUIRED
+# ====================
 
-# LLM
+# Groq API Key for LLM inference (Llama 3.3 70B)
 GROQ_API_KEY=your_groq_api_key
 
-# Vector DB
-PINECONE_API_KEY=your_pinecone_api_key
+# Google Gemini API Key for medical image analysis
+GEMINI_API_KEY=your_gemini_api_key
 
-# Cache
-REDIS_URL=redis://[username]:[password]@[host]:[port]
+# PostgreSQL database connection string
+DATABASE_URL=postgresql://user:password@localhost:5432/medulai
 
-# Auth
-JWT_SECRET_KEY=your_jwt_secret_key
+# Secret key for JWT authentication
+SECRET_KEY=your_secret_key_here
 
-# Vision
-HUGGINGFACE_API_KEY=your_huggingface_api_key
+# ====================
+# OPTIONAL
+# ====================
+
+# Redis cache (for orchestration state management)
+REDIS_URL=redis://localhost:6379
+
+# Backblaze B2 storage (for medical image uploads)
+B2_KEY_ID=your_b2_key_id
+B2_APPLICATION_KEY=your_b2_app_key
+B2_BUCKET_NAME=medulai-images
+
+# API Configuration
+CORS_ORIGINS=http://localhost:3000,https://medulai-eta.vercel.app
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+ALGORITHM=HS256
 ```
 
----
+### Required Variables
 
-## 📊 Performance Metrics
+| Variable | Purpose |
+|----------|---------|
+| `GROQ_API_KEY` | LLM inference for chat and agent orchestration |
+| `GEMINI_API_KEY` | Medical image analysis |
+| `DATABASE_URL` | PostgreSQL connection for patient data, SOAP notes, etc. |
+| `SECRET_KEY` | JWT token signing |
 
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| API Response Time (p95) | < 3s | ✅ 1.8s |
-| LLM Time to First Token | < 1.5s | ✅ 0.9s |
-| Database Query Time | < 50ms | ✅ 35ms |
-| Vector Search Time | < 100ms | ✅ 65ms |
-| Frontend Load Time | < 2s | ✅ 1.2s |
+### Optional Variables
 
----
+| Variable | Purpose |
+|----------|---------|
+| `REDIS_URL` | Session state and caching for orchestration |
+| `B2_*` | Backblaze B2 storage for medical images |
+| `CORS_ORIGINS` | Allowed frontend origins |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration (default: 30) |
+| `ALGORITHM` | JWT signing algorithm (default: HS256) |
 
-## 🧪 Testing
-
-```bash
-cd backend
-pytest tests/
-pytest --cov=app tests/
-```
-
----
-
-## 🚀 Deployment
-
-### Backend (Render)
-
-```bash
-# Push to main branch → auto-deploys to Render
-git push origin main
-```
-
-### Frontend (Vercel)
-
-```bash
-# Push to main branch → auto-deploys to Vercel
-git push origin main
-```
+> **Note:** Without `GROQ_API_KEY` and `GEMINI_API_KEY`, AI features will not function. The application will still run but LLM and Vision capabilities will be disabled.
 
 ---
 
-## 🤝 Contributing
+## ⚠️ Disclaimer
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+**MedulAi is a research and engineering project** intended to demonstrate AI-assisted clinical workflows. It is **not a medical device** and should **not be used as a substitute for professional medical judgment, diagnosis, or treatment**.
 
----
+- AI-generated outputs, including clinical documentation, recommendations, and medical image analysis, are **suggestions only** and require **human review and validation**.
+- The system has **not been clinically validated** and is not intended to meet medical device regulatory requirements.
+- Patient data should be handled in accordance with **applicable privacy and data-protection regulations**.
+- Healthcare professionals should independently review and make all clinical decisions.
 
-## 📄 License
-
-MIT © Rajinder Kaur
+> **MedulAi is provided "as-is" for demonstration and educational purposes.**
 
 ---
 
-## 🙏 Acknowledgments
+## 📬 Author
 
-- **Groq** for providing Llama 3.3 API
-- **HuggingFace** for vision models
-- **Neon** for serverless PostgreSQL
-- **Render** for backend hosting
-- **Vercel** for frontend hosting
+**Rajinder Kaur**  
+AI Engineer | Generative AI | LLM Applications | Multi-Agent Systems
 
----
-
-## 🔗 Links
-
-| Service | URL |
-|---------|-----|
-| **Live Demo** | https://mediagent-eta.vercel.app |
-| **Backend API** | https://mediagent-pn7o.onrender.com |
-| **API Docs** | https://mediagent-pn7o.onrender.com/docs |
-| **GitHub** | https://github.com/rajkaur-13/mediagent |
-
----
-
-**MediAgent — AI-powered healthcare, built for doctors.** 🏥
-```
+[![GitHub](https://img.shields.io/badge/GitHub-YourUsername-181717?style=for-the-badge&logo=github)](https://github.com/yourusername)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-YourProfile-0A66C2?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/yourprofile)
