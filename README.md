@@ -7,8 +7,8 @@ MedulAi is an AI-powered clinical assistant that brings intelligent automation i
 [![Live Demo](https://img.shields.io/badge/Live_Demo-medulai--eta.vercel.app-1a73e8?style=for-the-badge&logo=vercel)](https://mediagent-eta.vercel.app/)
 [![Backend API](https://img.shields.io/badge/Backend_API-medulai--pn7o.onrender.com-1a73e8?style=for-the-badge&logo=render)](https://mediagent-pn7o.onrender.com/)
 [![API Docs](https://img.shields.io/badge/API_Docs-Swagger-1a73e8?style=for-the-badge&logo=swagger)](https://mediagent-pn7o.onrender.com/docs)
-[![GitHub](https://img.shields.io/badge/GitHub-YourUsername-181717?style=for-the-badge&logo=github)](https://github.com/rajkaur-13)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-YourProfile-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/er-rajinder-kaur-6344581a7/)
+[![GitHub](https://img.shields.io/badge/GitHub-rajkaur-13-181717?style=for-the-badge&logo=github)](https://github.com/rajkaur-13)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Er.Rajinder-Kaur-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/er-rajinder-kaur-6344581a7/)
 
 ![MedulAi Demo](screenshots/demo.gif)
 
@@ -454,5 +454,5 @@ ALGORITHM=HS256
 **Rajinder Kaur**  
 AI Engineer | Generative AI | LLM Applications | Multi-Agent Systems
 
-[![GitHub](https://img.shields.io/badge/GitHub-YourUsername-181717?style=for-the-badge&logo=github)](https://github.com/rajkaur-13)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-YourProfile-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/er-rajinder-kaur-6344581a7/)
+[![GitHub](https://img.shields.io/badge/GitHub-rajkaur-13-181717?style=for-the-badge&logo=github)](https://github.com/rajkaur-13)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Er.Rajinder-Kaur-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/er-rajinder-kaur-6344581a7/)
