@@ -9,7 +9,7 @@ MedulAi is an AI-powered clinical assistant that brings intelligent automation i
 [![API Docs](https://img.shields.io/badge/API_Docs-Swagger-1a73e8?style=for-the-badge&logo=swagger)](https://mediagent-pn7o.onrender.com/docs)
 [![GitHub](https://img.shields.io/badge/GitHub-rajkaur--13-181717?style=for-the-badge&logo=github)](https://github.com/rajkaur-13)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Er.Rajinder--Kaur-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/er-rajinder-kaur-6344581a7/)
-![MedulAi Demo](screenshots/demo.gif)
+![MedulAi Demo](screenshots/medul1.gif)
 
 ---
 
